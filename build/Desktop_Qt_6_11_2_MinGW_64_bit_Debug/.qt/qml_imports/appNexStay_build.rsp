@@ -1,0 +1,14 @@
+-rootPath
+C:/Users/bjaco/Desktop/NexStay
+-cmake-output
+-output-file
+C:/Users/bjaco/Desktop/NexStay/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/.qt/qml_imports/appNexStay_build.cmake
+-importPath
+C:/Users/bjaco/Desktop/NexStay/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug
+-importPath
+C:/Users/bjaco/Desktop/NexStay/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/NexStay
+-importPath
+C:/Qt/6.11.2/mingw_64/qml
+-qrcFiles
+C:/Users/bjaco/Desktop/NexStay/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/.qt/rcc/qmake_NexStay.qrc
+C:/Users/bjaco/Desktop/NexStay/build/Desktop_Qt_6_11_2_MinGW_64_bit_Debug/.qt/rcc/appNexStay_raw_qml_0.qrc

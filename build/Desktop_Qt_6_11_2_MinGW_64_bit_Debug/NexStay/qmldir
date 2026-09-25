@@ -1,0 +1,6 @@
+module NexStay
+typeinfo appNexStay.qmltypes
+prefer :/qt/qml/NexStay/
+Main 254.0 Main.qml
+depends QtQuick
+
