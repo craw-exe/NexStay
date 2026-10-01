@@ -1,90 +1,183 @@
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Controls.Basic
-
+import NexStay
 
 ApplicationWindow {
     id: window
-    width: 640
-    height: 480
-    minimumWidth: 200
-    minimumHeight: 250
+    width: 420
+    height: 640
+    minimumWidth: 360
+    minimumHeight: 560
     visible: true
-    title: qsTr("Hello World")
-    property bool lightMode: Application.styleHints.colorScheme === Qt.Light
-    property color reallyDark: "#1f1f1f"
-    property color dark: "#262626"
-    property color reallyLight: "#e7e7e7"
-    property color light: "#e0e0e0"
+    title: qsTr("NexStay - Habitación")
 
-    GridLayout {
-        id: grid
-        columns: width < 400 ? 1 : 2
-        rowSpacing: 0
-        columnSpacing: 0
+    // Paleta NexStay
+    property color colorFondo: "#0d0d0d"
+    property color colorTarjeta: "#161616"
+    property color colorBorde: "#2a2a2a"
+    property color colorDorado: "#D4AF37"
+    property color colorTextoSecundario: "#8a8a8a"
+    property color colorTextoClaro: "#f2f2f2"
+
+    Habitacion {
+        id: habitacion
+    }
+
+    // Icono por estado, usado tanto en el círculo central como en el menú
+    function iconoPara(estado) {
+        switch (estado) {
+        case "ocupada": return "\u25A0"
+        case "libre": return "\u2713"
+        case "en limpieza": return "\u2728"
+        case "reservada": return "\u29D6"
+        case "fuera de servicio": return "\u26A0"
+        default: return "?"
+        }
+    }
+
+    function etiquetaPara(estado) {
+        switch (estado) {
+        case "ocupada": return qsTr("Ocupada")
+        case "libre": return qsTr("Libre")
+        case "en limpieza": return qsTr("En limpieza")
+        case "reservada": return qsTr("Reservada")
+        case "fuera de servicio": return qsTr("Fuera de servicio")
+        default: return estado
+        }
+    }
+
+    Rectangle {
         anchors.fill: parent
+        color: window.colorFondo
 
-        Rectangle {
-            id: rectangle1
-            color: window.lightMode ? window.reallyLight : window.reallyDark
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+        Column {
+            anchors.centerIn: parent
+            spacing: 18
 
-            ColumnLayout {
-                anchors.fill: parent
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-
+            // Encabezado: número de habitación
+            Column {
+                width: parent.width
+                spacing: 2
                 Label {
-                    id: text1
-                    color: window.lightMode ? window.dark : window.light
-                    font.pixelSize: 120
-                    fontSizeMode: Text.Fit
-                    text: qsTr("Hello World")
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.margins: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("HABITACIÓN")
+                    color: window.colorTextoSecundario
+                    font.pixelSize: 13
+                    font.letterSpacing: 1
+                }
+                Label {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: habitacion.numero
+                    color: window.colorDorado
+                    font.pixelSize: 40
+                    font.weight: Font.Medium
                 }
             }
-        }
 
-        Rectangle {
-            id: rectangle2
-            color: window.lightMode ? window.light : window.dark
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+            // Círculo central de estado (tocable)
+            Rectangle {
+                id: circuloEstado
+                width: 200
+                height: 200
+                radius: width / 2
+                color: "transparent"
+                border.color: window.colorDorado
+                border.width: 3
+                anchors.horizontalCenter: parent.horizontalCenter
 
-            ColumnLayout {
-                anchors.fill: parent
-                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 8
 
-                Button {
-                    id: button1
-                    text: window.lightMode ? qsTr("\u263D  Dark mode")
-                                           : qsTr("\u263C  Light mode")
-                    Layout.bottomMargin: 16
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-
-                    contentItem: Text {
-                        text: button1.text
-                        color: window.lightMode ? window.light : window.dark
-                        font: button1.font
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: window.iconoPara(habitacion.estadoActual)
+                        color: window.colorDorado
+                        font.pixelSize: 36
                     }
-
-                    background: Rectangle {
-                        implicitWidth: 120
-                        implicitHeight: 36
-                        radius: 8
-                        color: window.lightMode ? window.dark : window.light
+                    Label {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: window.etiquetaPara(habitacion.estadoActual)
+                        color: window.colorTextoClaro
+                        font.pixelSize: 16
+                        font.weight: Font.Medium
                     }
-
-                    onClicked: window.lightMode = !window.lightMode
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: menuEstados.open()
+                }
+            }
+
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Toca el círculo para cambiar el estado")
+                color: window.colorTextoSecundario
+                font.pixelSize: 11
+            }
+
+            // Barra inferior de accesos (placeholders para Themes 5 y 6)
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 28
+                topPadding: 10
+
+                Label { text: "\u26AA"; color: "#555555"; font.pixelSize: 18 }
+                Label { text: "\u2709"; color: "#555555"; font.pixelSize: 18 }
+                Label { text: "\u2692"; color: "#555555"; font.pixelSize: 18 }
             }
         }
     }
 
+    // Popup con los 5 estados disponibles
+    Popup {
+        id: menuEstados
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: 260
+        padding: 8
+
+        background: Rectangle {
+            color: window.colorTarjeta
+            radius: 12
+            border.color: window.colorBorde
+            border.width: 1
+        }
+
+        contentItem: Column {
+            spacing: 2
+
+            Repeater {
+                model: habitacion.estadosDisponibles
+
+                delegate: Rectangle {
+                    required property string modelData
+                    width: menuEstados.width - 16
+                    height: 46
+                    radius: 8
+                    color: modelData === habitacion.estadoActual ? window.colorDorado : "transparent"
+
+                    Label {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: window.etiquetaPara(modelData)
+                        color: modelData === habitacion.estadoActual ? "#1a1400" : window.colorTextoClaro
+                        font.pixelSize: 14
+                        font.weight: modelData === habitacion.estadoActual ? Font.Medium : Font.Normal
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            habitacion.cambiarEstado(modelData)
+                            menuEstados.close()
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
