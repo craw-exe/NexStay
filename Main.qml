@@ -21,16 +21,28 @@ ApplicationWindow {
 
     Habitacion {
         id: habitacion
+
+        onCambioRechazado: function(motivo) {
+            mensajeError.text = motivo
+            mensajeError.visible = true
+            temporizadorError.restart()
+        }
+    }
+
+    Timer {
+        id: temporizadorError
+        interval: 3000
+        onTriggered: mensajeError.visible = false
     }
 
     // Icono por estado, usado tanto en el círculo central como en el menú
     function iconoPara(estado) {
         switch (estado) {
-        case "ocupada": return "\u25A0"
-        case "libre": return "\u2713"
-        case "en limpieza": return "\u2728"
-        case "reservada": return "\u29D6"
-        case "fuera de servicio": return "\u26A0"
+        case "ocupada": return "■"
+        case "libre": return "✓"
+        case "en limpieza": return "✨"
+        case "reservada": return "⧖"
+        case "fuera de servicio": return "⚠"
         default: return "?"
         }
     }
@@ -117,15 +129,27 @@ ApplicationWindow {
                 font.pixelSize: 11
             }
 
+            // Mensaje de error (p. ej. si falla el guardado en la BD)
+            Label {
+                id: mensajeError
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 280
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                color: "#e05c5c"
+                font.pixelSize: 11
+                visible: false
+            }
+
             // Barra inferior de accesos (placeholders para Themes 5 y 6)
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 28
                 topPadding: 10
 
-                Label { text: "\u26AA"; color: "#555555"; font.pixelSize: 18 }
-                Label { text: "\u2709"; color: "#555555"; font.pixelSize: 18 }
-                Label { text: "\u2692"; color: "#555555"; font.pixelSize: 18 }
+                Label { text: "⚪"; color: "#555555"; font.pixelSize: 18 }
+                Label { text: "✉"; color: "#555555"; font.pixelSize: 18 }
+                Label { text: "⚒"; color: "#555555"; font.pixelSize: 18 }
             }
         }
     }

@@ -16,6 +16,8 @@ endif()
 
 qt_add_executable(appNexStay
     main.cpp
+    Database.h
+    Database.cpp
 )
 
 qt_add_qml_module(appNexStay

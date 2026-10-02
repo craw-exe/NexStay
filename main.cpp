@@ -1,42 +1,18 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QSqlError>
-#include <QStandardPaths>
-#include <QDir>
-#include <QDebug>
 
-void inicializarBaseDatos() {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-
-    // Obtiene una ruta de almacenamiento persistente válida para PC y Android
-    QString ruta = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(ruta);
-    db.setDatabaseName("C:/Users/bjaco/Desktop/NexStay/nexstay_hotel.db");
-
-    if (!db.open()) {
-        qDebug() << "Error al abrir la BD:" << db.lastError().text();
-        return;
-    }
-
-    qDebug() << "Base de datos SQLite abierta exitosamente en:" << db.databaseName();
-
-    // Crear tabla de habitaciones de ejemplo
-    QSqlQuery query;
-    query.exec("CREATE TABLE IF NOT EXISTS habitaciones ("
-               "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-               "numero TEXT NOT NULL, "
-               "tipo TEXT, "
-               "precio REAL, "
-               "estado TEXT DEFAULT 'Disponible')");
-}
+#include "Database.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    inicializarBaseDatos();
+    if (!Database::inicializar()) {
+        // La app puede seguir abriendo (para no dejar al usuario con una
+        // pantalla negra), pero sin base de datos la interfaz no podra
+        // leer ni guardar el estado de la habitacion.
+        qWarning("La aplicacion continuara sin conexion a la base de datos.");
+    }
 
     QQmlApplicationEngine engine;
     QObject::connect(
@@ -46,8 +22,6 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     engine.loadFromModule("NexStay", "Main");
-
-
 
     return QGuiApplication::exec();
 }
