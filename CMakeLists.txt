@@ -24,6 +24,7 @@ qt_add_qml_module(appNexStay
     URI NexStay
     QML_FILES
         Main.qml
+        RegistroHuesped.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
