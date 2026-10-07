@@ -25,6 +25,7 @@ qt_add_qml_module(appNexStay
     QML_FILES
         Main.qml
         RegistroHuesped.qml
+        PantallaCalendarioReservas.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
@@ -32,6 +33,8 @@ qt_add_qml_module(appNexStay
         Reserva.cpp
         HistorialEstadia.h
         HistorialEstadia.cpp
+        CalendarioReservas.h
+        CalendarioReservas.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
