@@ -23,7 +23,8 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection);
     //engine.loadFromModule("NexStay", "Main");
     //engine.loadFromModule("NexStay", "RegistroHuesped");
-       engine.loadFromModule("NexStay", "PantallaCalendarioReservas");
+    //engine.loadFromModule("NexStay", "PantallaCalendarioReservas");
+    engine.loadFromModule("NexStay", "PantallaLogin");
 
     return QGuiApplication::exec();
 }
