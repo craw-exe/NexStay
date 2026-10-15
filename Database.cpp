@@ -308,10 +308,17 @@ CROSS JOIN (SELECT 'habitaciones' AS modulo, 'ver' AS accion
             UNION ALL SELECT 'solicitudes', 'editar') p
 WHERE r.nombre = 'mantenimiento';
 
+-- Usuarios de ejemplo. La contrasena se guarda como SHA-256 (nunca en
+-- texto plano); los hashes de abajo corresponden a estas contrasenas
+-- de PRUEBA (solo para desarrollo, no usar en un hotel real):
+--   admin@hotel.com  -> admin123
+--   ana@hotel.com     -> limpieza123
 INSERT INTO Usuario (nombre, apellido, correo, contrasena, id_rol, estado) VALUES
-('Admin', 'Sistema', 'admin@hotel.com', 'cambiar_este_hash',
+('Admin', 'Sistema', 'admin@hotel.com',
+    '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
     (SELECT id_rol FROM Rol WHERE nombre = 'administrador'), 'activo'),
-('Ana',   'Lopez',   'ana@hotel.com',   'cambiar_este_hash',
+('Ana',   'Lopez',   'ana@hotel.com',
+    'b86470658679da7944ebcc2ade103747d547e6cb60ae276a549d9f18fe0676b8',
     (SELECT id_rol FROM Rol WHERE nombre = 'limpieza'), 'activo');
 
 -- Habitacion de demostracion para que el kiosco (Theme 2) tenga datos

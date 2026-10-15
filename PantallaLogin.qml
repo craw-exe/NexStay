@@ -1,10 +1,9 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import NexStay
 
-// Theme 4, Task 1: pantalla de login (correo + contraseña).
-// Por ahora es solo la interfaz, sin logica de autenticacion todavia
-// (eso es el Task 2: "Implementar logica de autenticacion en C++").
+// Theme 4, Task 1 (pantalla) + Task 2 (logica de autenticacion).
 //
 // Una sola pantalla sirve tanto para el celular (limpieza,
 // mantenimiento) como para la PC de recepcion/administracion: el
@@ -13,11 +12,18 @@ import QtQuick.Layouts
 // punto de quiebre (400px) que ya usaba el Main.qml original del
 // proyecto. No hay dos pantallas distintas, es la misma adaptandose.
 //
+// "Sesion" (Sesion.h/.cpp) es un singleton QML: se usa por su nombre
+// de tipo directamente ("Sesion.iniciarSesion(...)"), sin instanciarlo
+// con Sesion { } como a los demas objetos C++ del proyecto.
+//
 // Que vera cada quien DESPUES de iniciar sesion (recepcion ve el
 // calendario/registro, limpieza ve sus solicitudes, etc.) todavia no
-// esta resuelto aqui: eso depende de Theme 4 Task 3 ("logica de
-// acceso validado por rol") y de Theme 7 ("control de vistas por
-// rol"), no de esta pantalla.
+// esta resuelto aqui: eso depende de Theme 7 ("control de vistas por
+// rol"), no de esta pantalla. Por eso, mientras tanto, esta pantalla
+// se queda abierta despues de un login correcto y muestra un panel
+// con los datos de la sesion activa, un boton para probar el acceso
+// a una habitacion (Task 3, ver ControlAcceso.h/.cpp) y un boton para
+// cerrar sesion.
 ApplicationWindow {
     id: window
     width: 420
@@ -49,13 +55,146 @@ ApplicationWindow {
         mensajeValidacion.visible = false
     }
 
+    // Al abrir la pantalla, revisa si ya habia una sesion guardada en
+    // Sesion_Actual (por ejemplo, la app se cerro sin cerrar sesion
+    // explicitamente) y la recupera sin pedir contrasena de nuevo.
+    Component.onCompleted: Sesion.restaurarSesionGuardada()
+
+    // Reacciona a los rechazos de login que emite Sesion (correo
+    // inexistente, contrasena incorrecta, usuario inactivo, etc.) y
+    // los muestra en el mismo mensaje de error que ya usaba la
+    // validacion de campos vacios.
+    Connections {
+        target: Sesion
+        function onSesionRechazada(motivo) {
+            mensajeValidacion.text = motivo
+            mensajeValidacion.visible = true
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: window.colorFondo
 
+        // Panel que se muestra en vez del formulario cuando ya hay una
+        // sesion activa (prueba visual de que Sesion funciona). Tambien
+        // incluye, ya aqui mismo, un boton para probar ControlAcceso
+        // (Theme 4 Task 3): el usuario logueado intenta "entrar" a la
+        // habitacion de demostracion (numero 204, id 1) y la pantalla
+        // muestra si su rol tiene permiso o no, segun lo que haya
+        // decidido el trigger de la base de datos.
+        ColumnLayout {
+            visible: Sesion.haySesion
+            width: Math.min(parent.width - 48, 380)
+            anchors.centerIn: parent
+            spacing: 10
+
+            Label {
+                text: qsTr("Sesión iniciada")
+                color: window.colorDorado
+                font.pixelSize: 18
+                font.weight: Font.Medium
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Label {
+                text: Sesion.nombreCompleto
+                color: window.colorTextoClaro
+                font.pixelSize: 15
+                Layout.alignment: Qt.AlignHCenter
+            }
+            Label {
+                text: Sesion.correo + " · " + Sesion.nombreRol
+                color: window.colorTextoSecundario
+                font.pixelSize: 12
+                Layout.alignment: Qt.AlignHCenter
+                Layout.bottomMargin: 18
+            }
+
+            // --- Prueba de ControlAcceso (Theme 4, Task 3) ---
+            ControlAcceso {
+                id: controlAcceso
+                onAccesoConcedido: function(tipoActor, idHabitacion) {
+                    resultadoAcceso.text = qsTr("Acceso concedido a la habitación.")
+                    resultadoAcceso.color = "#6fcf97"
+                    resultadoAcceso.visible = true
+                }
+                onAccesoDenegado: function(tipoActor, idHabitacion, motivo) {
+                    resultadoAcceso.text = motivo
+                    resultadoAcceso.color = window.colorError
+                    resultadoAcceso.visible = true
+                }
+            }
+
+            Button {
+                id: botonProbarAcceso
+                Layout.fillWidth: true
+                text: qsTr("Probar acceso a Habitación 204")
+
+                contentItem: Text {
+                    text: botonProbarAcceso.text
+                    color: window.colorTextoClaro
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: "transparent"
+                    radius: 8
+                    border.width: 1
+                    border.color: "#444444"
+                    implicitHeight: 40
+                }
+                // La habitacion de demostracion sembrada por Database.cpp
+                // siempre queda con id_habitacion = 1 (es la primera fila
+                // insertada). Cuando exista una pantalla real de
+                // habitacion con login, este id vendra de ahi en vez de
+                // estar fijo.
+                onClicked: controlAcceso.intentarAccesoPersonal(1)
+            }
+
+            Label {
+                id: resultadoAcceso
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 2
+                width: parent.width
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 11
+                visible: false
+            }
+
+            Button {
+                id: botonCerrarSesion
+                Layout.fillWidth: true
+                Layout.topMargin: 8
+                text: qsTr("Cerrar sesión")
+
+                contentItem: Text {
+                    text: botonCerrarSesion.text
+                    color: window.colorTextoClaro
+                    font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: "transparent"
+                    radius: 8
+                    border.width: 1
+                    border.color: "#444444"
+                    implicitHeight: 44
+                }
+                onClicked: {
+                    Sesion.cerrarSesion()
+                    window.limpiarFormulario()
+                    resultadoAcceso.visible = false
+                }
+            }
+        }
+
         // Contenedor centrado, con ancho maximo para que en pantallas
         // muy anchas (PC) el formulario no se estire de borde a borde.
         ColumnLayout {
+            visible: !Sesion.haySesion
             width: Math.min(parent.width - 48, 380)
             anchors.centerIn: parent
             spacing: 4
@@ -171,15 +310,26 @@ ApplicationWindow {
                 }
                 onClicked: {
                     if (!window.formularioValido) {
+                        mensajeValidacion.text = qsTr("Ingresa tu correo y contraseña.")
                         mensajeValidacion.visible = true
                         return
                     }
                     mensajeValidacion.visible = false
-                    // TODO (Theme 4, Task 2 - "Implementar logica de
-                    // autenticacion en C++"): validar correo/contrasena
-                    // contra la tabla Usuario y, si es correcto, abrir
-                    // la vista que corresponda al rol de esa cuenta.
-                    console.log("Intento de login:", campoCorreo.text)
+
+                    const exito = Sesion.iniciarSesion(campoCorreo.text, campoContrasena.text)
+                    if (exito) {
+                        // Sesion.haySesion pasa a true y el panel de
+                        // "Sesion iniciada" de arriba se muestra solo.
+                        // onSesionRechazada (Connections, arriba) ya
+                        // se encarga del caso de error.
+                        window.limpiarFormulario()
+                    }
+                    // TODO (Theme 7 - "control de vistas/funciones por
+                    // rol"): en vez de quedarse en esta pantalla,
+                    // navegar a la vista que corresponda a
+                    // Sesion.nombreRol. El Task 3 de este Theme
+                    // (ControlAcceso, boton "Probar acceso" de abajo)
+                    // ya esta resuelto.
                 }
             }
 
