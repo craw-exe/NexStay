@@ -18,6 +18,80 @@ ApplicationWindow {
     property color colorDorado: "#D4AF37"
     property color colorTextoSecundario: "#8a8a8a"
     property color colorTextoClaro: "#f2f2f2"
+    property color colorExito: "#6fcf97"
+
+    // --- Theme 5, Task 1: SOLO interfaz ---
+    // Estado local de la pantalla. Todavia no se guarda ni se envia a
+    // ningun lado: guardar Estado_Presencia y crear Solicitud_Servicio
+    // (con su protocolo app -> servidor) son los Tasks 2 y 3 de este
+    // Theme. Mientras tanto, estos valores solo viven en memoria.
+    property bool estoyDentro: true
+    // "limpieza" o "mantenimiento" mientras se espera la confirmacion
+    // del huesped en el popup; vacio si no hay ninguna pendiente.
+    property string solicitudPendiente: ""
+
+    function mostrarAviso(texto) {
+        textoAviso.text = texto
+        avisoEnviado.opacity = 1
+        temporizadorAviso.restart()
+    }
+
+    Timer {
+        id: temporizadorAviso
+        interval: 2500
+        onTriggered: avisoEnviado.opacity = 0
+    }
+
+    // Boton redondo con icono y etiqueta debajo, para la fila inferior.
+    component BotonAccion: Item {
+        id: raiz
+        property string icono
+        property string etiqueta
+        property bool resaltado: false
+        // Colores propios (en vez de leer los del window) para que el
+        // componente no dependa de ids externos.
+        property color colorActivo: "#6fcf97"
+        property color colorTexto: "#f2f2f2"
+        property color colorEtiqueta: "#8a8a8a"
+        signal tocado()
+
+        implicitWidth: 72
+        implicitHeight: 70
+
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 5
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 46
+                height: 46
+                radius: 23
+                color: area.pressed ? "#1f1f1f" : "transparent"
+                border.width: 1
+                border.color: raiz.resaltado ? raiz.colorActivo : "#444444"
+
+                Label {
+                    anchors.centerIn: parent
+                    text: raiz.icono
+                    color: raiz.resaltado ? raiz.colorActivo : raiz.colorTexto
+                    font.pixelSize: 20
+                }
+            }
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: raiz.etiqueta
+                color: raiz.colorEtiqueta
+                font.pixelSize: 11
+            }
+        }
+
+        MouseArea {
+            id: area
+            anchors.fill: parent
+            onClicked: raiz.tocado()
+        }
+    }
 
     Habitacion {
         id: habitacion
@@ -93,7 +167,8 @@ ApplicationWindow {
                 height: 200
                 radius: width / 2
                 color: "transparent"
-                border.color: window.colorDorado
+                // Verde mientras el huesped esta dentro; dorado al salir.
+                border.color: window.estoyDentro ? window.colorExito : window.colorDorado
                 border.width: 3
                 anchors.horizontalCenter: parent.horizontalCenter
 
@@ -141,15 +216,160 @@ ApplicationWindow {
                 visible: false
             }
 
-            // Barra inferior de accesos (placeholders para Themes 5 y 6)
+            // Barra inferior (Theme 5, Task 1): presencia y solicitudes.
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 28
-                topPadding: 10
+                spacing: 16
+                topPadding: 6
 
-                Label { text: "⚪"; color: "#555555"; font.pixelSize: 18 }
-                Label { text: "✉"; color: "#555555"; font.pixelSize: 18 }
-                Label { text: "⚒"; color: "#555555"; font.pixelSize: 18 }
+                // Alterna entre "dentro" y "fuera". El icono y la
+                // etiqueta muestran el estado ACTUAL del huesped.
+                BotonAccion {
+                    icono: window.estoyDentro ? "⌂" : "➜"
+                    etiqueta: window.estoyDentro ? qsTr("Dentro") : qsTr("Fuera")
+                    resaltado: window.estoyDentro
+                    onTocado: {
+                        window.estoyDentro = !window.estoyDentro
+                        window.mostrarAviso(window.estoyDentro
+                                            ? qsTr("Marcado como dentro de la habitación")
+                                            : qsTr("Marcado como fuera de la habitación"))
+                    }
+                }
+
+                // Las solicitudes piden confirmacion antes de enviarse,
+                // para evitar envios por un toque accidental.
+                BotonAccion {
+                    icono: "✨"
+                    etiqueta: qsTr("Limpieza")
+                    onTocado: {
+                        window.solicitudPendiente = "limpieza"
+                        confirmarSolicitud.open()
+                    }
+                }
+                BotonAccion {
+                    icono: "⚒"
+                    etiqueta: qsTr("Mant.")
+                    onTocado: {
+                        window.solicitudPendiente = "mantenimiento"
+                        confirmarSolicitud.open()
+                    }
+                }
+            }
+
+            // Aviso breve de confirmacion. Ocupa siempre su espacio
+            // (solo cambia la opacidad) para que el resto de la
+            // pantalla no salte cuando aparece o desaparece.
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 300
+                height: 32
+
+                Rectangle {
+                    id: avisoEnviado
+                    anchors.centerIn: parent
+                    width: Math.min(textoAviso.implicitWidth + 28, 300)
+                    height: 30
+                    radius: 15
+                    color: window.colorTarjeta
+                    border.width: 1
+                    border.color: window.colorBorde
+                    opacity: 0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                    Label {
+                        id: textoAviso
+                        anchors.centerIn: parent
+                        width: parent.width - 20
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                        color: window.colorExito
+                        font.pixelSize: 11
+                    }
+                }
+            }
+        }
+    }
+
+    // Confirmacion antes de enviar una solicitud de limpieza/mantenimiento.
+    Popup {
+        id: confirmarSolicitud
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: 280
+        padding: 16
+
+        background: Rectangle {
+            color: window.colorTarjeta
+            radius: 12
+            border.color: window.colorBorde
+            border.width: 1
+        }
+
+        contentItem: Column {
+            spacing: 14
+
+            Label {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                color: window.colorTextoClaro
+                font.pixelSize: 15
+                font.weight: Font.Medium
+                text: window.solicitudPendiente === "limpieza"
+                      ? qsTr("¿Pedir limpieza para tu habitación?")
+                      : qsTr("¿Pedir mantenimiento para tu habitación?")
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 10
+
+                Rectangle {
+                    width: 116
+                    height: 40
+                    radius: 8
+                    color: "transparent"
+                    border.width: 1
+                    border.color: "#444444"
+                    Label {
+                        anchors.centerIn: parent
+                        text: qsTr("Cancelar")
+                        color: window.colorTextoClaro
+                        font.pixelSize: 13
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: confirmarSolicitud.close()
+                    }
+                }
+
+                Rectangle {
+                    width: 116
+                    height: 40
+                    radius: 8
+                    color: window.colorDorado
+                    Label {
+                        anchors.centerIn: parent
+                        text: qsTr("Pedir")
+                        color: "#1a1400"
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // TODO (Theme 5, Tasks 2 y 3): aqui se creara
+                            // la Solicitud_Servicio y se avisara al
+                            // personal. Por ahora solo se muestra el aviso.
+                            console.log("Solicitud (solo UI):", window.solicitudPendiente)
+                            confirmarSolicitud.close()
+                            window.mostrarAviso(window.solicitudPendiente === "limpieza"
+                                                ? qsTr("Solicitud de limpieza enviada")
+                                                : qsTr("Solicitud de mantenimiento enviada"))
+                        }
+                    }
+                }
             }
         }
     }
