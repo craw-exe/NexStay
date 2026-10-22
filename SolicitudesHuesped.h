@@ -1,8 +1,10 @@
 #ifndef SOLICITUDESHUESPED_H
 #define SOLICITUDESHUESPED_H
 
+#include <QHash>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <QtQml/qqmlregistration.h>
 
 // Theme 5, Task 2: "protocolo de comunicacion app -> servidor".
@@ -17,8 +19,11 @@
 //   - cambiarPresencia()  -> Estado_Presencia (dentro / fuera)
 //   - crearSolicitud()    -> Solicitud_Servicio (origen = 'huesped')
 //
-// Esto no incluye avisar al personal (Task 3: notificacion/alerta) ni
-// marcar la solicitud como atendida (Task 4). Si algun dia se agrega un
+// El aviso al personal lo hace AlertasPersonal (Task 3). Task 4: el
+// camino de vuelta; cuando el personal marca una solicitud como
+// atendida, esta clase lo detecta (revisa la BD cada 2 s) y emite
+// solicitudAtendida() para que la pantalla se lo confirme al huesped.
+// Si algun dia se agrega un
 // servidor real, esta clase es el unico lugar que habria que cambiar
 // para que envie estos mismos datos por red; las pantallas no.
 //
@@ -50,12 +55,21 @@ public:
 signals:
     void presenciaCambiada(const QString &nuevoEstado);
     void solicitudCreada(const QString &tipo);
+    // El personal marco como atendida una solicitud de esta habitacion.
+    void solicitudAtendida(const QString &tipo);
     // Presencia o solicitud rechazada; el texto ya esta listo para
     // mostrarse al huesped.
     void operacionRechazada(const QString &motivo);
 
+private slots:
+    void revisarSolicitudesAtendidas();
+
 private:
     void cargarDesdeBaseDeDatos();
+
+    QTimer m_timer;
+    // Solicitudes de esta habitacion aun sin resolver: id -> tipo.
+    QHash<int, QString> m_enCurso;
 
     int m_idHabitacion = -1;
     QString m_presencia;

@@ -9,6 +9,56 @@ SolicitudesHuesped::SolicitudesHuesped(QObject *parent)
     : QObject(parent)
 {
     cargarDesdeBaseDeDatos();
+
+    connect(&m_timer, &QTimer::timeout, this, &SolicitudesHuesped::revisarSolicitudesAtendidas);
+    m_timer.start(2000);
+}
+
+void SolicitudesHuesped::revisarSolicitudesAtendidas()
+{
+    if (m_idHabitacion < 0) {
+        return;
+    }
+
+    // Trae las solicitudes aun sin resolver de esta habitacion, mas las
+    // que se conocian y ahora podrian estar resueltas. Los ids vienen
+    // de la propia BD (enteros), no de texto escrito por el usuario.
+    QStringList conocidas;
+    for (auto it = m_enCurso.cbegin(); it != m_enCurso.cend(); ++it) {
+        conocidas << QString::number(it.key());
+    }
+    const QString sql = QStringLiteral(
+        "SELECT id_solicitud, tipo, estado FROM Solicitud_Servicio "
+        "WHERE id_habitacion = :id AND origen = 'huesped' "
+        "  AND (estado <> 'resuelta' OR id_solicitud IN (%1))")
+        .arg(conocidas.isEmpty() ? QStringLiteral("-1") : conocidas.join(','));
+
+    QSqlQuery query;
+    query.prepare(sql);
+    query.bindValue(":id", m_idHabitacion);
+
+    if (!query.exec()) {
+        return; // Se reintenta en el siguiente ciclo.
+    }
+
+    QHash<int, QString> actuales;
+    QList<QString> atendidas;
+    while (query.next()) {
+        const int id = query.value("id_solicitud").toInt();
+        const QString tipo = query.value("tipo").toString();
+        if (query.value("estado").toString() == QLatin1String("resuelta")) {
+            if (m_enCurso.contains(id)) {
+                atendidas << tipo;
+            }
+        } else {
+            actuales.insert(id, tipo);
+        }
+    }
+
+    m_enCurso = actuales;
+    for (const QString &tipo : atendidas) {
+        emit solicitudAtendida(tipo);
+    }
 }
 
 void SolicitudesHuesped::cargarDesdeBaseDeDatos()
@@ -30,6 +80,20 @@ void SolicitudesHuesped::cargarDesdeBaseDeDatos()
     presencia.bindValue(":id", m_idHabitacion);
     if (presencia.exec() && presencia.next()) {
         m_presencia = presencia.value("estado").toString();
+    }
+
+    // Solicitudes que ya estaban sin resolver al abrir la pantalla: si el
+    // personal las atiende, tambien se le confirmara al huesped.
+    QSqlQuery enCurso;
+    enCurso.prepare(QStringLiteral(
+        "SELECT id_solicitud, tipo FROM Solicitud_Servicio "
+        "WHERE id_habitacion = :id AND origen = 'huesped' AND estado <> 'resuelta'"));
+    enCurso.bindValue(":id", m_idHabitacion);
+    if (enCurso.exec()) {
+        while (enCurso.next()) {
+            m_enCurso.insert(enCurso.value("id_solicitud").toInt(),
+                             enCurso.value("tipo").toString());
+        }
     }
 }
 
@@ -138,6 +202,10 @@ bool SolicitudesHuesped::crearSolicitud(const QString &tipo, const QString &prio
         emit operacionRechazada(QStringLiteral("No se pudo enviar la solicitud. Intenta de nuevo."));
         return false;
     }
+
+    // Se recuerda para detectar cuando el personal la atienda, aunque
+    // lo haga antes del siguiente ciclo de revision.
+    m_enCurso.insert(insertar.lastInsertId().toInt(), tipo);
 
     emit solicitudCreada(tipo);
     return true;

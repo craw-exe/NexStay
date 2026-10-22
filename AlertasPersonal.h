@@ -27,8 +27,11 @@
 // abierta). Una notificacion con la app cerrada o en segundo plano, como
 // un push al celular, requiere un servidor, que se descarto por ahora.
 //
-// No cambia el estado de ninguna solicitud: atenderlas es el Task 4 de
-// este Theme y la gestion completa es el Theme 6.
+// Task 4: tambien es el lado del personal para CONFIRMAR que una
+// solicitud ya fue atendida (marcarAtendida). El huesped se entera por
+// SolicitudesHuesped, que revisa la BD y emite solicitudAtendida(). El
+// flujo completo de gestion (asignar responsable, "en proceso",
+// reportes) es el Theme 6.
 class AlertasPersonal : public QObject
 {
     Q_OBJECT
@@ -44,7 +47,21 @@ public:
 
     QVariantList solicitudes() const;
 
+    // true si el rol de la sesion actual tiene el permiso
+    // ('solicitudes','editar'), es decir, puede marcar solicitudes como
+    // atendidas. Sirve para mostrar u ocultar el boton "Atender".
+    Q_INVOKABLE bool puedeAtender() const;
+
+    // Marca la solicitud como atendida (estado 'resuelta'), dejando
+    // constancia de quien la atendio y cuando. Rechaza si no hay
+    // sesion, si el rol no puede editar solicitudes, si la solicitud no
+    // le corresponde a su rol (limpieza solo limpieza, etc.) o si ya
+    // estaba atendida.
+    Q_INVOKABLE bool marcarAtendida(int idSolicitud);
+
 signals:
+    void solicitudAtendida(int idSolicitud);
+    void operacionRechazada(const QString &motivo);
     void solicitudesCambiaron();
     void nuevaSolicitud(int idSolicitud, const QString &tipo,
                         const QString &numeroHabitacion, const QString &prioridad);
@@ -54,8 +71,9 @@ private slots:
 
 private:
     // Rol del usuario con sesion activa, o cadena vacia si no hay
-    // sesion o su rol no tiene el permiso ('solicitudes','ver').
-    QString rolConPermiso() const;
+    // sesion o su rol no tiene el permiso ('solicitudes', accion).
+    // Si idUsuario no es nulo, ahi se devuelve el id de ese usuario.
+    QString rolConPermiso(const QString &accion, int *idUsuario = nullptr) const;
 
     QTimer m_timer;
     int m_ultimoIdVisto = 0;

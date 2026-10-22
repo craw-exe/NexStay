@@ -42,26 +42,92 @@ QVariantList AlertasPersonal::solicitudes() const
     return m_solicitudes;
 }
 
-QString AlertasPersonal::rolConPermiso() const
+QString AlertasPersonal::rolConPermiso(const QString &accion, int *idUsuario) const
 {
     QSqlQuery query;
-    if (!query.exec(QStringLiteral(
-            "SELECT r.nombre AS rol "
-            "FROM Sesion_Actual s "
-            "JOIN Usuario u ON u.id_usuario = s.id_usuario AND u.estado = 'activo' "
-            "JOIN Rol r ON r.id_rol = u.id_rol "
-            "WHERE s.id = 1 "
-            "  AND EXISTS (SELECT 1 FROM Permisos p WHERE p.id_rol = u.id_rol "
-            "              AND p.modulo = 'solicitudes' AND p.accion_permitida = 'ver')"))
-        || !query.next()) {
+    query.prepare(QStringLiteral(
+        "SELECT u.id_usuario, r.nombre AS rol "
+        "FROM Sesion_Actual s "
+        "JOIN Usuario u ON u.id_usuario = s.id_usuario AND u.estado = 'activo' "
+        "JOIN Rol r ON r.id_rol = u.id_rol "
+        "WHERE s.id = 1 "
+        "  AND EXISTS (SELECT 1 FROM Permisos p WHERE p.id_rol = u.id_rol "
+        "              AND p.modulo = 'solicitudes' AND p.accion_permitida = :accion)"));
+    query.bindValue(":accion", accion);
+
+    if (!query.exec() || !query.next()) {
         return QString();
+    }
+    if (idUsuario) {
+        *idUsuario = query.value("id_usuario").toInt();
     }
     return query.value("rol").toString();
 }
 
+bool AlertasPersonal::puedeAtender() const
+{
+    return !rolConPermiso(QStringLiteral("editar")).isEmpty();
+}
+
+bool AlertasPersonal::marcarAtendida(int idSolicitud)
+{
+    int idUsuario = -1;
+    const QString rol = rolConPermiso(QStringLiteral("editar"), &idUsuario);
+    if (rol.isEmpty()) {
+        emit operacionRechazada(QStringLiteral("Tu rol no puede atender solicitudes."));
+        return false;
+    }
+
+    QSqlQuery consulta;
+    consulta.prepare(QStringLiteral(
+        "SELECT tipo, estado FROM Solicitud_Servicio WHERE id_solicitud = :id"));
+    consulta.bindValue(":id", idSolicitud);
+    if (!consulta.exec() || !consulta.next()) {
+        emit operacionRechazada(QStringLiteral("La solicitud ya no existe."));
+        return false;
+    }
+
+    const QString tipoVisible = tipoVisiblePara(rol);
+    if (!tipoVisible.isEmpty() && tipoVisible != consulta.value("tipo").toString()) {
+        emit operacionRechazada(QStringLiteral("Esta solicitud no corresponde a tu rol."));
+        return false;
+    }
+    if (consulta.value("estado").toString() == QLatin1String("resuelta")) {
+        emit operacionRechazada(QStringLiteral("Esta solicitud ya fue atendida."));
+        return false;
+    }
+
+    // "estado <> 'resuelta'" en el WHERE evita que dos personas la
+    // atiendan a la vez: la segunda no modifica ninguna fila.
+    QSqlQuery actualizar;
+    actualizar.prepare(QStringLiteral(
+        "UPDATE Solicitud_Servicio "
+        "SET estado = 'resuelta', "
+        "    id_responsable_asignado = :usuario, "
+        "    fecha_atencion = COALESCE(fecha_atencion, datetime('now','localtime')), "
+        "    fecha_resolucion = datetime('now','localtime') "
+        "WHERE id_solicitud = :id AND estado <> 'resuelta'"));
+    actualizar.bindValue(":usuario", idUsuario);
+    actualizar.bindValue(":id", idSolicitud);
+
+    if (!actualizar.exec()) {
+        qWarning() << "No se pudo marcar la solicitud como atendida:" << actualizar.lastError().text();
+        emit operacionRechazada(QStringLiteral("No se pudo guardar el cambio. Intenta de nuevo."));
+        return false;
+    }
+    if (actualizar.numRowsAffected() < 1) {
+        emit operacionRechazada(QStringLiteral("Esta solicitud ya fue atendida."));
+        return false;
+    }
+
+    emit solicitudAtendida(idSolicitud);
+    refrescar(); // La lista se actualiza al instante, sin esperar al timer.
+    return true;
+}
+
 void AlertasPersonal::refrescar()
 {
-    const QString rol = rolConPermiso();
+    const QString rol = rolConPermiso(QStringLiteral("ver"));
     const QString tipoVisible = tipoVisiblePara(rol);
 
     // 1) Solicitudes nuevas desde la ultima revision. Se avanza el id

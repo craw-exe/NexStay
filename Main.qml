@@ -102,6 +102,13 @@ ApplicationWindow {
             mensajeError.visible = true
             temporizadorError.restart()
         }
+
+        // Theme 5, Task 4: el personal marco la solicitud como atendida.
+        onSolicitudAtendida: function(tipo) {
+            window.mostrarAviso(tipo === "limpieza"
+                                ? qsTr("Tu solicitud de limpieza fue atendida")
+                                : qsTr("Tu solicitud de mantenimiento fue atendida"))
+        }
     }
 
     Habitacion {

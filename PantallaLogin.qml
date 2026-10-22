@@ -123,6 +123,14 @@ ApplicationWindow {
                     bannerAlerta.visible = true
                     temporizadorAlerta.restart()
                 }
+                // Task 4: confirmacion de que una solicitud fue atendida
+                // (o el motivo por el que no se pudo).
+                onSolicitudAtendida: function(idSolicitud) {
+                    textoPrueba.text = ""
+                }
+                onOperacionRechazada: function(motivo) {
+                    textoPrueba.text = motivo
+                }
             }
 
             Timer {
@@ -163,17 +171,47 @@ ApplicationWindow {
             }
 
             // Vista rapida de las primeras 3 (la gestion completa de
-            // solicitudes es del Theme 6).
+            // solicitudes es del Theme 6). Task 4: cada una tiene un
+            // boton "Atender" para confirmarla como atendida.
             Repeater {
                 model: alertas.solicitudes.slice(0, 3)
 
-                delegate: Label {
+                delegate: RowLayout {
                     required property var modelData
                     Layout.alignment: Qt.AlignHCenter
-                    text: "Hab. " + modelData.numeroHabitacion + " · " + modelData.tipo
-                          + " · " + modelData.prioridad
-                    color: modelData.prioridad === "alta" ? window.colorError : window.colorTextoClaro
-                    font.pixelSize: 12
+                    spacing: 10
+
+                    Label {
+                        text: "Hab. " + modelData.numeroHabitacion + " · " + modelData.tipo
+                              + " · " + modelData.prioridad
+                        color: modelData.prioridad === "alta" ? window.colorError : window.colorTextoClaro
+                        font.pixelSize: 12
+                    }
+
+                    Button {
+                        id: botonAtender
+                        // Referenciar Sesion.nombreRol hace que se
+                        // reevalue al cambiar de sesion; recepcion, por
+                        // ejemplo, puede ver pero no atender.
+                        visible: Sesion.nombreRol.length > 0 && alertas.puedeAtender()
+                        text: qsTr("Atender")
+
+                        contentItem: Text {
+                            text: botonAtender.text
+                            color: "#1a1400"
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            color: window.colorDorado
+                            radius: 6
+                            implicitWidth: 64
+                            implicitHeight: 26
+                        }
+                        onClicked: alertas.marcarAtendida(modelData.idSolicitud)
+                    }
                 }
             }
 
