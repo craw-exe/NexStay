@@ -45,6 +45,8 @@ qt_add_qml_module(appNexStay
         BitacoraAcceso.cpp
         SolicitudesHuesped.h
         SolicitudesHuesped.cpp
+        AlertasPersonal.h
+        AlertasPersonal.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

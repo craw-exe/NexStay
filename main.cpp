@@ -21,10 +21,10 @@ int main(int argc, char *argv[])
         &app,
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    engine.loadFromModule("NexStay", "Main");
+    //engine.loadFromModule("NexStay", "Main");
     //engine.loadFromModule("NexStay", "RegistroHuesped");
     //engine.loadFromModule("NexStay", "PantallaCalendarioReservas");
-    //engine.loadFromModule("NexStay", "PantallaLogin");
+    engine.loadFromModule("NexStay", "PantallaLogin");
     //engine.loadFromModule("NexStay", "PantallaBitacoraAcceso");
 
     return QGuiApplication::exec();

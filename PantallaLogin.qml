@@ -110,6 +110,120 @@ ApplicationWindow {
                 Layout.bottomMargin: 18
             }
 
+            // --- Alertas de solicitudes (Theme 5, Task 3) ---
+            // AlertasPersonal revisa la BD cada 2 s y avisa cuando llega
+            // una solicitud nueva que le toca al rol de esta sesion
+            // (limpieza solo ve limpieza, mantenimiento solo
+            // mantenimiento, administrador/recepcion ven todo).
+            AlertasPersonal {
+                id: alertas
+                onNuevaSolicitud: function(idSolicitud, tipo, numeroHabitacion, prioridad) {
+                    textoAlerta.text = qsTr("Nueva solicitud de %1 · Hab. %2")
+                                        .arg(tipo).arg(numeroHabitacion)
+                    bannerAlerta.visible = true
+                    temporizadorAlerta.restart()
+                }
+            }
+
+            Timer {
+                id: temporizadorAlerta
+                interval: 6000
+                onTriggered: bannerAlerta.visible = false
+            }
+
+            Rectangle {
+                id: bannerAlerta
+                visible: false
+                Layout.fillWidth: true
+                Layout.preferredHeight: 38
+                radius: 8
+                color: window.colorCampo
+                border.width: 1
+                border.color: window.colorDorado
+
+                Label {
+                    id: textoAlerta
+                    anchors.centerIn: parent
+                    width: parent.width - 24
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    color: window.colorDorado
+                    font.pixelSize: 12
+                    font.weight: Font.Medium
+                }
+            }
+
+            Label {
+                text: alertas.solicitudes.length === 0
+                      ? qsTr("Sin solicitudes pendientes")
+                      : qsTr("Solicitudes pendientes: %1").arg(alertas.solicitudes.length)
+                color: window.colorTextoSecundario
+                font.pixelSize: 12
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            // Vista rapida de las primeras 3 (la gestion completa de
+            // solicitudes es del Theme 6).
+            Repeater {
+                model: alertas.solicitudes.slice(0, 3)
+
+                delegate: Label {
+                    required property var modelData
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "Hab. " + modelData.numeroHabitacion + " · " + modelData.tipo
+                          + " · " + modelData.prioridad
+                    color: modelData.prioridad === "alta" ? window.colorError : window.colorTextoClaro
+                    font.pixelSize: 12
+                }
+            }
+
+            // SOLO PRUEBA: genera una solicitud como si la pidiera el
+            // huesped de demostracion, para ver llegar la alerta sin
+            // abrir otra instancia de la app. Quitar cuando exista la
+            // vista de solicitudes (Theme 6).
+            SolicitudesHuesped {
+                id: simuladorSolicitudes
+                onOperacionRechazada: function(motivo) {
+                    textoPrueba.text = motivo
+                }
+                onSolicitudCreada: function(tipo) {
+                    textoPrueba.text = ""
+                }
+            }
+
+            Button {
+                id: botonSimular
+                Layout.fillWidth: true
+                Layout.topMargin: 8
+                text: qsTr("Prueba: simular solicitud de limpieza")
+
+                contentItem: Text {
+                    text: botonSimular.text
+                    color: window.colorTextoClaro
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                background: Rectangle {
+                    color: "transparent"
+                    radius: 8
+                    border.width: 1
+                    border.color: "#444444"
+                    implicitHeight: 36
+                }
+                onClicked: simuladorSolicitudes.crearSolicitud("limpieza")
+            }
+
+            Label {
+                id: textoPrueba
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                color: window.colorError
+                font.pixelSize: 11
+                visible: text.length > 0
+            }
+
             // --- Prueba de ControlAcceso (Theme 4, Task 3) ---
             ControlAcceso {
                 id: controlAcceso
