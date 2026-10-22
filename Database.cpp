@@ -400,6 +400,41 @@ INSERT INTO Habitacion (numero, piso, tipo, estado_actual, capacidad) VALUES
 
         return sentencias;
     }
+
+    // SOLO DESARROLLO: deja listo un huesped de demostracion con una
+    // estadia abierta en la primera habitacion, y su presencia en
+    // "dentro". Sin una estadia abierta, Solicitud_Servicio no puede
+    // crearse desde la pantalla del huesped (exige id_huesped) y no habria
+    // forma de probar el Theme 5 mientras el registro de huespedes
+    // (Theme 3, Task 1) siga siendo solo interfaz. Es idempotente: se
+    // ejecuta en cada arranque, pero no duplica nada si ya existe.
+    // Quitar cuando exista el flujo real de check-in.
+    void sembrarHuespedDemo(QSqlDatabase &db)
+    {
+        const QStringList sentencias = {
+            QStringLiteral(
+                "INSERT OR IGNORE INTO Huesped (nombre, apellido, documento_identidad, telefono, correo) "
+                "VALUES ('Huesped', 'Demo', 'DEMO-0001', '0000000000', 'demo@nexstay.test')"),
+            QStringLiteral(
+                "INSERT INTO Historial_Estadia (id_reserva, id_huesped, id_habitacion, fecha_entrada_real) "
+                "SELECT NULL, hu.id_huesped, h.id_habitacion, datetime('now','localtime') "
+                "FROM Huesped hu, Habitacion h "
+                "WHERE hu.documento_identidad = 'DEMO-0001' "
+                "  AND h.id_habitacion = (SELECT MIN(id_habitacion) FROM Habitacion) "
+                "  AND NOT EXISTS (SELECT 1 FROM Historial_Estadia e "
+                "                  WHERE e.id_habitacion = h.id_habitacion AND e.fecha_salida_real IS NULL)"),
+            QStringLiteral(
+                "INSERT OR IGNORE INTO Estado_Presencia (id_habitacion, estado) "
+                "SELECT id_habitacion, 'dentro' FROM Habitacion "
+                "WHERE id_habitacion = (SELECT MIN(id_habitacion) FROM Habitacion)")
+        };
+        for (const QString &sql : sentencias) {
+            QSqlQuery q(db);
+            if (!q.exec(sql)) {
+                qWarning() << "No se pudo sembrar el huesped de demostracion:" << q.lastError().text();
+            }
+        }
+    }
 }
 
 namespace Database
@@ -462,6 +497,8 @@ namespace Database
         } else {
             qDebug() << "Esquema de NexStay ya existia, no se vuelve a crear.";
         }
+
+        sembrarHuespedDemo(db);
 
         return true;
     }

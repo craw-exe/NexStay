@@ -20,12 +20,11 @@ ApplicationWindow {
     property color colorTextoClaro: "#f2f2f2"
     property color colorExito: "#6fcf97"
 
-    // --- Theme 5, Task 1: SOLO interfaz ---
-    // Estado local de la pantalla. Todavia no se guarda ni se envia a
-    // ningun lado: guardar Estado_Presencia y crear Solicitud_Servicio
-    // (con su protocolo app -> servidor) son los Tasks 2 y 3 de este
-    // Theme. Mientras tanto, estos valores solo viven en memoria.
-    property bool estoyDentro: true
+    // --- Theme 5 (Task 1: interfaz, Task 2: guardado) ---
+    // La presencia YA NO vive solo en memoria: viene de Estado_Presencia
+    // via SolicitudesHuesped (Task 2). Es un binding de solo lectura;
+    // para cambiarla se llama a solicitudes.cambiarPresencia().
+    property bool estoyDentro: solicitudes.presencia === "dentro"
     // "limpieza" o "mantenimiento" mientras se espera la confirmacion
     // del huesped en el popup; vacio si no hay ninguna pendiente.
     property string solicitudPendiente: ""
@@ -90,6 +89,18 @@ ApplicationWindow {
             id: area
             anchors.fill: parent
             onClicked: raiz.tocado()
+        }
+    }
+
+    // Theme 5, Task 2: capa que guarda la presencia y crea las
+    // solicitudes en la BD (ver SolicitudesHuesped.h).
+    SolicitudesHuesped {
+        id: solicitudes
+
+        onOperacionRechazada: function(motivo) {
+            mensajeError.text = motivo
+            mensajeError.visible = true
+            temporizadorError.restart()
         }
     }
 
@@ -229,10 +240,14 @@ ApplicationWindow {
                     etiqueta: window.estoyDentro ? qsTr("Dentro") : qsTr("Fuera")
                     resaltado: window.estoyDentro
                     onTocado: {
-                        window.estoyDentro = !window.estoyDentro
-                        window.mostrarAviso(window.estoyDentro
-                                            ? qsTr("Marcado como dentro de la habitación")
-                                            : qsTr("Marcado como fuera de la habitación"))
+                        // Si falla, SolicitudesHuesped emite
+                        // operacionRechazada y se muestra el error.
+                        const nuevo = window.estoyDentro ? "fuera" : "dentro"
+                        if (solicitudes.cambiarPresencia(nuevo)) {
+                            window.mostrarAviso(nuevo === "dentro"
+                                                ? qsTr("Marcado como dentro de la habitación")
+                                                : qsTr("Marcado como fuera de la habitación"))
+                        }
                     }
                 }
 
@@ -359,14 +374,17 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            // TODO (Theme 5, Tasks 2 y 3): aqui se creara
-                            // la Solicitud_Servicio y se avisara al
-                            // personal. Por ahora solo se muestra el aviso.
-                            console.log("Solicitud (solo UI):", window.solicitudPendiente)
+                            // Guarda la Solicitud_Servicio en la BD. Avisar
+                            // al personal es el Task 3. Si se rechaza
+                            // (sin estadia activa, duplicada...), el
+                            // motivo sale por operacionRechazada.
+                            const tipo = window.solicitudPendiente
                             confirmarSolicitud.close()
-                            window.mostrarAviso(window.solicitudPendiente === "limpieza"
-                                                ? qsTr("Solicitud de limpieza enviada")
-                                                : qsTr("Solicitud de mantenimiento enviada"))
+                            if (solicitudes.crearSolicitud(tipo)) {
+                                window.mostrarAviso(tipo === "limpieza"
+                                                    ? qsTr("Solicitud de limpieza enviada")
+                                                    : qsTr("Solicitud de mantenimiento enviada"))
+                            }
                         }
                     }
                 }
