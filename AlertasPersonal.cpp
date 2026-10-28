@@ -163,7 +163,8 @@ void AlertasPersonal::refrescar()
     QVariantList lista;
     if (!rol.isEmpty()) {
         QString sql = QStringLiteral(
-            "SELECT s.id_solicitud, s.tipo, s.prioridad, s.fecha_creacion, h.numero "
+            "SELECT s.id_solicitud, s.tipo, s.prioridad, s.origen, s.fecha_creacion, h.numero, "
+            "       CAST((julianday('now','localtime') - julianday(s.fecha_creacion)) * 1440 AS INTEGER) AS minutos_espera "
             "FROM Solicitud_Servicio s "
             "JOIN Habitacion h ON h.id_habitacion = s.id_habitacion "
             "WHERE s.estado = 'pendiente' ");
@@ -187,7 +188,9 @@ void AlertasPersonal::refrescar()
                 fila[QStringLiteral("numeroHabitacion")] = pendientes.value("numero").toString();
                 fila[QStringLiteral("tipo")] = pendientes.value("tipo").toString();
                 fila[QStringLiteral("prioridad")] = pendientes.value("prioridad").toString();
+                fila[QStringLiteral("origen")] = pendientes.value("origen").toString();
                 fila[QStringLiteral("fechaCreacion")] = pendientes.value("fecha_creacion").toString();
+                fila[QStringLiteral("minutosEspera")] = qMax(0, pendientes.value("minutos_espera").toInt());
                 lista.append(fila);
             }
         } else {

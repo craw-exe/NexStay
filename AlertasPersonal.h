@@ -39,7 +39,9 @@ class AlertasPersonal : public QObject
 
     // Solicitudes pendientes visibles para el usuario actual, ordenadas
     // por prioridad (alta primero) y luego por antiguedad. Cada elemento:
-    // idSolicitud, numeroHabitacion, tipo, prioridad, fechaCreacion.
+    // idSolicitud, numeroHabitacion, tipo, prioridad, origen,
+    // fechaCreacion, minutosEspera (Theme 6, Task 2: la vista de
+    // solicitudes los usa para mostrar origen y cuanto llevan esperando).
     Q_PROPERTY(QVariantList solicitudes READ solicitudes NOTIFY solicitudesCambiaron)
 
 public:

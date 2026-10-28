@@ -28,6 +28,7 @@ qt_add_qml_module(appNexStay
         PantallaCalendarioReservas.qml
         PantallaLogin.qml
         PantallaBitacoraAcceso.qml
+        PantallaSolicitudes.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
