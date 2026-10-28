@@ -124,7 +124,7 @@ ApplicationWindow {
                 Label {
                     visible: Sesion.haySesion
                     text: Sesion.nombreRol + " · "
-                          + qsTr("%1 pendientes").arg(alertas.solicitudes.length)
+                          + qsTr("%1 abiertas").arg(alertas.solicitudes.length)
                     color: window.colorTextoSecundario
                     font.pixelSize: 11
                 }
@@ -246,6 +246,9 @@ ApplicationWindow {
                             Label {
                                 text: window.etiquetaOrigen(modelData.origen) + " · "
                                       + window.etiquetaEspera(modelData.minutosEspera)
+                                      + (modelData.estado === "en_proceso"
+                                         ? " · " + qsTr("En proceso: %1").arg(modelData.responsable)
+                                         : "")
                                 color: window.colorTextoSecundario
                                 font.pixelSize: 11
                             }
@@ -326,6 +329,15 @@ ApplicationWindow {
             }
             Label {
                 text: window.seleccionada
+                      ? (window.seleccionada.estado === "en_proceso"
+                         ? qsTr("Estado: en proceso (%1)").arg(window.seleccionada.responsable)
+                         : qsTr("Estado: pendiente"))
+                      : ""
+                color: window.colorTextoClaro
+                font.pixelSize: 13
+            }
+            Label {
+                text: window.seleccionada
                       ? qsTr("Creada: %1 (%2)").arg(window.seleccionada.fechaCreacion)
                             .arg(window.etiquetaEspera(window.seleccionada.minutosEspera))
                       : ""
@@ -370,18 +382,21 @@ ApplicationWindow {
                     }
                 }
 
+                // Task 3: pendiente -> "Tomar" (queda como responsable).
+                // Referenciar Sesion.nombreRol hace que se reevalue al
+                // cambiar de sesion; recepcion, por ejemplo, puede ver
+                // solicitudes pero no atenderlas.
                 Rectangle {
-                    // Referenciar Sesion.nombreRol hace que se reevalue
-                    // al cambiar de sesion; recepcion, por ejemplo, puede
-                    // ver solicitudes pero no atenderlas.
                     visible: Sesion.nombreRol.length > 0 && alertas.puedeAtender()
+                             && window.seleccionada !== null
+                             && window.seleccionada.estado === "pendiente"
                     Layout.fillWidth: true
                     implicitHeight: 40
                     radius: 8
                     color: window.colorDorado
                     Label {
                         anchors.centerIn: parent
-                        text: qsTr("Atender")
+                        text: qsTr("Tomar")
                         color: "#1a1400"
                         font.pixelSize: 13
                         font.weight: Font.Medium
@@ -389,8 +404,38 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            // Si se rechaza (ya atendida, otro rol...),
-                            // el motivo sale por operacionRechazada.
+                            // Si se rechaza (otra persona la tomo, no le
+                            // corresponde a su rol...), el motivo sale
+                            // por operacionRechazada.
+                            if (alertas.tomarSolicitud(window.seleccionada.idSolicitud)) {
+                                detalle.close()
+                            }
+                        }
+                    }
+                }
+
+                // en proceso -> "Terminar": solo su responsable o un
+                // administrador (la regla real la valida AlertasPersonal).
+                Rectangle {
+                    visible: Sesion.nombreRol.length > 0 && alertas.puedeAtender()
+                             && window.seleccionada !== null
+                             && window.seleccionada.estado === "en_proceso"
+                             && (window.seleccionada.idResponsable === Sesion.idUsuario
+                                 || Sesion.nombreRol === "administrador")
+                    Layout.fillWidth: true
+                    implicitHeight: 40
+                    radius: 8
+                    color: window.colorDorado
+                    Label {
+                        anchors.centerIn: parent
+                        text: qsTr("Terminar")
+                        color: "#1a1400"
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
                             if (alertas.marcarAtendida(window.seleccionada.idSolicitud)) {
                                 detalle.close()
                             }

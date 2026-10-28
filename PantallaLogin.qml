@@ -164,7 +164,7 @@ ApplicationWindow {
             Label {
                 text: alertas.solicitudes.length === 0
                       ? qsTr("Sin solicitudes pendientes")
-                      : qsTr("Solicitudes pendientes: %1").arg(alertas.solicitudes.length)
+                      : qsTr("Solicitudes abiertas: %1").arg(alertas.solicitudes.length)
                 color: window.colorTextoSecundario
                 font.pixelSize: 12
                 Layout.alignment: Qt.AlignHCenter

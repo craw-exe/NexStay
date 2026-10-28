@@ -37,11 +37,12 @@ class AlertasPersonal : public QObject
     Q_OBJECT
     QML_ELEMENT
 
-    // Solicitudes pendientes visibles para el usuario actual, ordenadas
-    // por prioridad (alta primero) y luego por antiguedad. Cada elemento:
-    // idSolicitud, numeroHabitacion, tipo, prioridad, origen,
-    // fechaCreacion, minutosEspera (Theme 6, Task 2: la vista de
-    // solicitudes los usa para mostrar origen y cuanto llevan esperando).
+    // Solicitudes ABIERTAS (pendientes o en proceso) visibles para el
+    // usuario actual, ordenadas por prioridad (alta primero) y luego por
+    // antiguedad. Cada elemento: idSolicitud, numeroHabitacion, tipo,
+    // prioridad, origen, estado, idResponsable (0 si no tiene),
+    // responsable (nombre, vacio si no tiene), fechaCreacion y
+    // minutosEspera (Theme 6, Tasks 2 y 3).
     Q_PROPERTY(QVariantList solicitudes READ solicitudes NOTIFY solicitudesCambiaron)
 
 public:
@@ -54,14 +55,23 @@ public:
     // atendidas. Sirve para mostrar u ocultar el boton "Atender".
     Q_INVOKABLE bool puedeAtender() const;
 
+    // Theme 6, Task 3: el usuario con sesion TOMA la solicitud: pasa de
+    // 'pendiente' a 'en_proceso', queda como responsable y se registra
+    // fecha_atencion. Asi nadie mas la toma y se sabe quien la atiende.
+    // Rechaza si el rol no puede editar solicitudes, si no le
+    // corresponde por tipo, o si otra persona ya la tomo o la resolvio.
+    Q_INVOKABLE bool tomarSolicitud(int idSolicitud);
+
     // Marca la solicitud como atendida (estado 'resuelta'), dejando
     // constancia de quien la atendio y cuando. Rechaza si no hay
     // sesion, si el rol no puede editar solicitudes, si la solicitud no
     // le corresponde a su rol (limpieza solo limpieza, etc.) o si ya
-    // estaba atendida.
+    // estaba atendida. Si esta en proceso, solo la puede terminar su
+    // responsable o un administrador.
     Q_INVOKABLE bool marcarAtendida(int idSolicitud);
 
 signals:
+    void solicitudTomada(int idSolicitud);
     void solicitudAtendida(int idSolicitud);
     void operacionRechazada(const QString &motivo);
     void solicitudesCambiaron();
