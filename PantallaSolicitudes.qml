@@ -39,6 +39,27 @@ ApplicationWindow {
     // Solicitud abierta en el popup de detalle (mapa de AlertasPersonal).
     property var seleccionada: null
     property string mensajeError: ""
+    // Task 4: "abiertas" o "historial" (solicitudes ya resueltas).
+    property string vista: "abiertas"
+    property var historial: []
+
+    function cargarHistorial() {
+        historial = alertas.historial(50)
+    }
+    function promedio(campo) {
+        if (historial.length === 0) return 0
+        let suma = 0
+        for (let i = 0; i < historial.length; i++) suma += historial[i][campo]
+        return suma / historial.length
+    }
+    function etiquetaDuracion(segundos) {
+        if (segundos < 60) return qsTr("menos de 1 min")
+        const minutos = Math.floor(segundos / 60)
+        if (minutos < 60) return qsTr("%1 min").arg(minutos)
+        const horas = Math.floor(minutos / 60)
+        const resto = minutos % 60
+        return resto === 0 ? qsTr("%1 h").arg(horas) : qsTr("%1 h %2 min").arg(horas).arg(resto)
+    }
 
     Component.onCompleted: Sesion.restaurarSesionGuardada()
 
@@ -50,6 +71,15 @@ ApplicationWindow {
         }
         onSolicitudAtendida: function(idSolicitud) {
             window.mensajeError = ""
+        }
+    }
+
+    // Si se resuelve una solicitud (aqui o desde otra pantalla), la lista
+    // abierta cambia: se refresca tambien el historial si se esta viendo.
+    Connections {
+        target: alertas
+        function onSolicitudesCambiaron() {
+            if (window.vista === "historial") window.cargarHistorial()
         }
     }
 
@@ -130,11 +160,53 @@ ApplicationWindow {
                 }
             }
 
+            // Selector de vista: abiertas / historial (Task 4)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                visible: Sesion.haySesion
+
+                Repeater {
+                    model: [
+                        { clave: "abiertas", texto: qsTr("Abiertas") },
+                        { clave: "historial", texto: qsTr("Historial") }
+                    ]
+
+                    delegate: Rectangle {
+                        id: pestana
+                        required property var modelData
+                        property bool activa: window.vista === modelData.clave
+
+                        Layout.fillWidth: true
+                        implicitHeight: 32
+                        radius: 8
+                        color: activa ? window.colorDorado : "transparent"
+                        border.width: 1
+                        border.color: activa ? window.colorDorado : "#444444"
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: pestana.modelData.texto
+                            color: pestana.activa ? "#1a1400" : window.colorTextoSecundario
+                            font.pixelSize: 12
+                            font.weight: pestana.activa ? Font.Medium : Font.Normal
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                window.vista = pestana.modelData.clave
+                                if (window.vista === "historial") window.cargarHistorial()
+                            }
+                        }
+                    }
+                }
+            }
+
             // Chips de filtro por prioridad
             Flow {
                 Layout.fillWidth: true
                 spacing: 6
-                visible: Sesion.haySesion
+                visible: Sesion.haySesion && window.vista === "abiertas"
 
                 Repeater {
                     model: [
@@ -192,7 +264,8 @@ ApplicationWindow {
                 Layout.topMargin: 30
             }
             Label {
-                visible: Sesion.haySesion && listaSolicitudes.count === 0
+                visible: Sesion.haySesion && window.vista === "abiertas"
+                         && listaSolicitudes.count === 0
                 text: window.filtro === "todas"
                       ? qsTr("Sin solicitudes pendientes.")
                       : qsTr("No hay solicitudes con esa prioridad.")
@@ -208,7 +281,7 @@ ApplicationWindow {
                 id: listaSolicitudes
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                visible: Sesion.haySesion
+                visible: Sesion.haySesion && window.vista === "abiertas"
                 clip: true
                 spacing: 8
                 model: window.filtro === "todas"
@@ -276,6 +349,84 @@ ApplicationWindow {
                         onClicked: {
                             window.seleccionada = modelData
                             detalle.open()
+                        }
+                    }
+                }
+            }
+
+            // --- Historial (Task 4) ---
+            Label {
+                visible: Sesion.haySesion && window.vista === "historial"
+                         && window.historial.length > 0
+                text: qsTr("Promedio · respuesta %1 · resolución %2")
+                          .arg(window.etiquetaDuracion(window.promedio("segundosRespuesta")))
+                          .arg(window.etiquetaDuracion(window.promedio("segundosResolucion")))
+                color: window.colorDorado
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Label {
+                visible: Sesion.haySesion && window.vista === "historial"
+                         && window.historial.length === 0
+                text: qsTr("Todavía no hay solicitudes atendidas.")
+                color: window.colorTextoSecundario
+                font.pixelSize: 12
+                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
+                Layout.topMargin: 30
+            }
+
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: Sesion.haySesion && window.vista === "historial"
+                clip: true
+                spacing: 8
+                model: window.historial
+
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view ? ListView.view.width : 0
+                    height: 72
+                    radius: 10
+                    color: window.colorTarjeta
+                    border.width: 1
+                    border.color: window.colorBorde
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        anchors.topMargin: 8
+                        anchors.bottomMargin: 8
+                        spacing: 2
+
+                        Label {
+                            text: qsTr("Hab. %1 · %2").arg(modelData.numeroHabitacion)
+                                      .arg(window.etiquetaTipo(modelData.tipo))
+                            color: window.colorTextoClaro
+                            font.pixelSize: 13
+                            font.weight: Font.Medium
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: qsTr("Respuesta %1 · Resolución %2")
+                                      .arg(window.etiquetaDuracion(modelData.segundosRespuesta))
+                                      .arg(window.etiquetaDuracion(modelData.segundosResolucion))
+                            color: window.colorDorado
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: (modelData.responsable.length > 0 ? modelData.responsable + " · " : "")
+                                  + modelData.fechaResolucion
+                            color: window.colorTextoSecundario
+                            font.pixelSize: 10
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                     }
                 }

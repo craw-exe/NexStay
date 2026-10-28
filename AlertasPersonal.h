@@ -70,6 +70,17 @@ public:
     // responsable o un administrador.
     Q_INVOKABLE bool marcarAtendida(int idSolicitud);
 
+    // Theme 6, Task 4: solicitudes ya resueltas (las mas recientes
+    // primero) con los tiempos que se midieron. Los momentos ya quedan
+    // guardados al tomar (fecha_atencion) y terminar (fecha_resolucion)
+    // una solicitud; aqui se calculan las duraciones. Cada elemento:
+    // idSolicitud, numeroHabitacion, tipo, prioridad, origen,
+    // responsable, fechaCreacion, fechaResolucion,
+    // segundosRespuesta (creacion -> atencion) y segundosResolucion
+    // (atencion -> resolucion). Respeta el filtro por rol de siempre;
+    // el Theme 8 (reportes) puede apoyarse en estos mismos calculos.
+    Q_INVOKABLE QVariantList historial(int limite = 50);
+
 signals:
     void solicitudTomada(int idSolicitud);
     void solicitudAtendida(int idSolicitud);

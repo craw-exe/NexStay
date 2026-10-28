@@ -69,6 +69,66 @@ bool AlertasPersonal::puedeAtender() const
     return !rolConPermiso(QStringLiteral("editar")).isEmpty();
 }
 
+QVariantList AlertasPersonal::historial(int limite)
+{
+    QVariantList resultado;
+
+    const QString rol = rolConPermiso(QStringLiteral("ver"));
+    if (rol.isEmpty()) {
+        return resultado;
+    }
+    const QString tipoVisible = tipoVisiblePara(rol);
+
+    // Si una solicitud se resolvio directo desde "pendiente" (sin
+    // tomarla antes), fecha_atencion y fecha_resolucion coinciden: la
+    // respuesta es todo el tiempo de espera y la resolucion es 0.
+    QString sql = QStringLiteral(
+        "SELECT s.id_solicitud, s.tipo, s.prioridad, s.origen, s.fecha_creacion, "
+        "       s.fecha_resolucion, h.numero, "
+        "       u.nombre || ' ' || u.apellido AS responsable, "
+        "       CAST(strftime('%s', COALESCE(s.fecha_atencion, s.fecha_resolucion)) "
+        "            - strftime('%s', s.fecha_creacion) AS INTEGER) AS seg_respuesta, "
+        "       CAST(strftime('%s', s.fecha_resolucion) "
+        "            - strftime('%s', COALESCE(s.fecha_atencion, s.fecha_resolucion)) AS INTEGER) AS seg_resolucion "
+        "FROM Solicitud_Servicio s "
+        "JOIN Habitacion h ON h.id_habitacion = s.id_habitacion "
+        "LEFT JOIN Usuario u ON u.id_usuario = s.id_responsable_asignado "
+        "WHERE s.estado = 'resuelta' AND s.fecha_resolucion IS NOT NULL ");
+    if (!tipoVisible.isEmpty()) {
+        sql += QStringLiteral("AND s.tipo = :tipo ");
+    }
+    sql += QStringLiteral("ORDER BY s.fecha_resolucion DESC, s.id_solicitud DESC LIMIT :limite");
+
+    QSqlQuery query;
+    query.prepare(sql);
+    if (!tipoVisible.isEmpty()) {
+        query.bindValue(":tipo", tipoVisible);
+    }
+    query.bindValue(":limite", limite);
+
+    if (!query.exec()) {
+        qWarning() << "AlertasPersonal: no se pudo leer el historial:" << query.lastError().text();
+        return resultado;
+    }
+
+    while (query.next()) {
+        QVariantMap fila;
+        fila[QStringLiteral("idSolicitud")] = query.value("id_solicitud").toInt();
+        fila[QStringLiteral("numeroHabitacion")] = query.value("numero").toString();
+        fila[QStringLiteral("tipo")] = query.value("tipo").toString();
+        fila[QStringLiteral("prioridad")] = query.value("prioridad").toString();
+        fila[QStringLiteral("origen")] = query.value("origen").toString();
+        fila[QStringLiteral("responsable")] = query.value("responsable").toString();
+        fila[QStringLiteral("fechaCreacion")] = query.value("fecha_creacion").toString();
+        fila[QStringLiteral("fechaResolucion")] = query.value("fecha_resolucion").toString();
+        fila[QStringLiteral("segundosRespuesta")] = qMax(0, query.value("seg_respuesta").toInt());
+        fila[QStringLiteral("segundosResolucion")] = qMax(0, query.value("seg_resolucion").toInt());
+        resultado.append(fila);
+    }
+
+    return resultado;
+}
+
 bool AlertasPersonal::tomarSolicitud(int idSolicitud)
 {
     int idUsuario = -1;
