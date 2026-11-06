@@ -70,14 +70,17 @@ ApplicationWindow {
           mensaje: qsTr("Los reportes se construyen en el Theme 8.") },
         { clave: "usuarios", titulo: qsTr("Usuarios y roles"),
           descripcion: qsTr("Cuentas y permisos"),
-          modulo: "usuarios", accion: "ver",
-          mensaje: qsTr("La administración de usuarios y roles es el Task 3 de este Theme.") }
+          modulo: "usuarios", accion: "ver" }
     ]
 
     // Solo las vistas que el rol de la sesion actual puede abrir. Leer
     // Sesion.idUsuario hace que esto se recalcule al cambiar de sesion.
+    // revisionPermisos sube cada vez que se regresa al menu, para que
+    // los cambios hechos en la pantalla de administracion se reflejen.
+    property int revisionPermisos: 0
     property var vistasPermitidas: {
         const idUsuario = Sesion.idUsuario
+        const revision = revisionPermisos
         if (idUsuario < 0) {
             return []
         }
@@ -106,6 +109,7 @@ ApplicationWindow {
         case "reservas":    pila.push(compReservas); break
         case "huespedes":   pila.push(compHuespedes); break
         case "bitacora":    pila.push(compBitacora); break
+        case "usuarios":    pila.push(compAdministracion); break
         default:            pila.push(compMarcador, { texto: vista.mensaje })
         }
     }
@@ -125,6 +129,7 @@ ApplicationWindow {
         if (pila.depth > 1) {
             pila.pop()
             window.vistaActual = ""
+            window.revisionPermisos++
         }
     }
 
@@ -215,6 +220,7 @@ ApplicationWindow {
     Component { id: compReservas;    PantallaCalendarioReservas {} }
     Component { id: compHuespedes;   RegistroHuesped {} }
     Component { id: compBitacora;    PantallaBitacoraAcceso {} }
+    Component { id: compAdministracion; PantallaAdministracion {} }
     Component {
         id: compMarcador
         Item {

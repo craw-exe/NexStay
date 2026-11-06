@@ -63,6 +63,16 @@ public:
     // lo recupera sin pedir contrasena de nuevo.
     Q_INVOKABLE void restaurarSesionGuardada();
 
+    // (Theme 7, Task 3: ahora es publica porque AdministracionUsuarios
+    // la usa al crear usuarios y restablecer contrasenas.)
+    // SHA-256 en hexadecimal. Nota de alcance: Qt no trae bcrypt ni
+    // argon2 "de fabrica" (que es lo recomendado para contrasenas en
+    // produccion, como ya advertia el propio script SQL del Sprint 2);
+    // usar una libreria externa de esas era mas complejidad de la que
+    // amerita este proyecto escolar. SHA-256 al menos evita guardar
+    // la contrasena en texto plano, que era el requisito minimo.
+    static QString hashContrasena(const QString &contrasenaPlano);
+
 signals:
     // Se emite tanto al iniciar como al cerrar sesion (cualquier
     // cambio del usuario activo). Las Q_PROPERTY de arriba usan esta
@@ -71,13 +81,6 @@ signals:
     void sesionRechazada(const QString &motivo);
 
 private:
-    // SHA-256 en hexadecimal. Nota de alcance: Qt no trae bcrypt ni
-    // argon2 "de fabrica" (que es lo recomendado para contrasenas en
-    // produccion, como ya advertia el propio script SQL del Sprint 2);
-    // usar una libreria externa de esas era mas complejidad de la que
-    // amerita este proyecto escolar. SHA-256 al menos evita guardar
-    // la contrasena en texto plano, que era el requisito minimo.
-    static QString hashContrasena(const QString &contrasenaPlano);
 
     bool cargarUsuarioPorId(int idUsuario);
     void limpiarSesion();
