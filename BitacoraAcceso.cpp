@@ -12,19 +12,18 @@ BitacoraAcceso::BitacoraAcceso(QObject *parent)
 
 bool BitacoraAcceso::puedeVerBitacora()
 {
+    // Theme 7: ya no se compara el NOMBRE del rol; se revisa el permiso
+    // ('bitacora','ver') en la tabla Permisos, asi el administrador
+    // puede concederlo a otro rol sin tocar codigo.
     QSqlQuery query;
     query.exec(QStringLiteral(
-        "SELECT r.nombre AS rol "
+        "SELECT 1 "
         "FROM Sesion_Actual s "
-        "JOIN Usuario u ON u.id_usuario = s.id_usuario "
-        "JOIN Rol r ON r.id_rol = u.id_rol "
-        "WHERE s.id = 1"));
+        "JOIN Usuario u ON u.id_usuario = s.id_usuario AND u.estado = 'activo' "
+        "JOIN Permisos p ON p.id_rol = u.id_rol "
+        "WHERE s.id = 1 AND p.modulo = 'bitacora' AND p.accion_permitida = 'ver'"));
 
-    if (!query.next()) {
-        return false; // No hay sesion activa.
-    }
-
-    return query.value("rol").toString() == QStringLiteral("administrador");
+    return query.next(); // false tambien si no hay sesion activa.
 }
 
 QVariantList BitacoraAcceso::registros(int idHabitacion, int limite)

@@ -8,14 +8,11 @@ import QtQuick.Layouts
 // base de datos: eso se conectará en el task de "lógica de
 // validación de disponibilidad" / registro, junto con la tabla
 // Huesped (nombre, apellido, documento_identidad, telefono, correo).
-ApplicationWindow {
+// Theme 7, Task 2: esta pantalla ya no es una ventana propia, sino una
+// vista (Item) que PantallaPrincipal abre dentro de su ventana, solo
+// para los roles que tienen el permiso correspondiente.
+Item {
     id: window
-    width: 480
-    height: 620
-    minimumWidth: 420
-    minimumHeight: 560
-    visible: true
-    title: qsTr("NexStay - Registrar huésped")
 
     // Paleta NexStay (misma que el resto de la app)
     property color colorFondo: "#0d0d0d"

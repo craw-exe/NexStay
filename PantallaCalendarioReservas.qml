@@ -18,14 +18,11 @@ import NexStay
 // pedirlo por nombre, y termina instanciando el objeto equivocado
 // (en este caso, la clase C++ en vez de la ventana) sin dar ningun
 // error visible. No renombrar este archivo a "CalendarioReservas.qml".
-ApplicationWindow {
+// Theme 7, Task 2: esta pantalla ya no es una ventana propia, sino una
+// vista (Item) que PantallaPrincipal abre dentro de su ventana, solo
+// para los roles que tienen el permiso correspondiente.
+Item {
     id: window
-    width: 920
-    height: 560
-    minimumWidth: 640
-    minimumHeight: 420
-    visible: true
-    title: qsTr("NexStay - Calendario de reservas")
 
     property color colorFondo: "#0d0d0d"
     property color colorTarjeta: "#161616"

@@ -27,11 +27,11 @@ class BitacoraAcceso : public QObject
 public:
     explicit BitacoraAcceso(QObject *parent = nullptr);
 
-    // La bitacora de accesos es informacion de seguridad: solo el rol
-    // "administrador" (el de recepcion, segun lo definido en Theme 4
-    // Task 1) puede verla. Se revisa aqui, en C++, en vez de solo
-    // esconder el boton en QML, para que no baste con conocer la ruta
-    // de la pantalla para saltarse el permiso.
+    // La bitacora de accesos es informacion de seguridad: solo los
+    // roles con el permiso ('bitacora','ver') pueden verla (hoy, el
+    // administrador). Se revisa aqui, en C++, en vez de solo esconder
+    // el boton en QML, para que no baste con conocer la ruta de la
+    // pantalla para saltarse el permiso.
     Q_INVOKABLE bool puedeVerBitacora();
 
     // Los ultimos "limite" registros de Bitacora_acceso, mas recientes

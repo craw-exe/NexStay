@@ -9,19 +9,11 @@ import NexStay
 // lado de LECTURA, para que el administrador/recepcion pueda auditar
 // quien entro (o intento entrar sin permiso) a cada habitacion.
 //
-// Pantalla de prueba independiente, igual que PantallaCalendarioReservas:
-// se abre cambiando temporalmente el segundo argumento de
-// engine.loadFromModule() en main.cpp a "PantallaBitacoraAcceso". La
-// navegacion real (a que pantalla llega cada rol al iniciar sesion) es
-// trabajo de Theme 7, no de esta pantalla.
-ApplicationWindow {
+// Theme 7, Task 2: esta pantalla ya no es una ventana propia, sino una
+// vista (Item) que PantallaPrincipal abre dentro de su ventana, solo
+// para los roles que tienen el permiso correspondiente.
+Item {
     id: window
-    width: 480
-    height: 720
-    minimumWidth: 340
-    minimumHeight: 480
-    visible: true
-    title: qsTr("NexStay - Bitácora de accesos")
 
     property color colorFondo: "#0d0d0d"
     property color colorTarjeta: "#1a1a1a"
@@ -83,7 +75,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
             }
             Label {
-                text: qsTr("Solo el rol de administración puede ver la bitácora de accesos. Inicia sesión con una cuenta de administrador en la pantalla de login y vuelve a abrir esta vista.")
+                text: qsTr("Tu rol no tiene permiso para ver la bitácora de accesos.")
                 color: window.colorTextoSecundario
                 font.pixelSize: 12
                 wrapMode: Text.WordWrap

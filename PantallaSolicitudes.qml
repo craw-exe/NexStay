@@ -11,20 +11,11 @@ import NexStay
 // ancho en pantallas grandes. Cada rol ve solo lo que le corresponde
 // (eso lo decide AlertasPersonal, no esta pantalla).
 //
-// Pantalla de prueba independiente, igual que PantallaBitacoraAcceso:
-// se abre cambiando temporalmente el segundo argumento de
-// engine.loadFromModule() en main.cpp a "PantallaSolicitudes". Toma la
-// sesion guardada en Sesion_Actual, asi que primero hay que haber
-// iniciado sesion desde PantallaLogin. La navegacion real por rol es
-// trabajo de Theme 7.
-ApplicationWindow {
+// Theme 7, Task 2: esta pantalla ya no es una ventana propia, sino una
+// vista (Item) que PantallaPrincipal abre dentro de su ventana, solo
+// para los roles que tienen el permiso correspondiente.
+Item {
     id: window
-    width: 420
-    height: 640
-    minimumWidth: 320
-    minimumHeight: 480
-    visible: true
-    title: qsTr("NexStay - Solicitudes")
 
     property color colorFondo: "#0d0d0d"
     property color colorTarjeta: "#1a1a1a"
@@ -60,8 +51,6 @@ ApplicationWindow {
         const resto = minutos % 60
         return resto === 0 ? qsTr("%1 h").arg(horas) : qsTr("%1 h %2 min").arg(horas).arg(resto)
     }
-
-    Component.onCompleted: Sesion.restaurarSesionGuardada()
 
     AlertasPersonal {
         id: alertas

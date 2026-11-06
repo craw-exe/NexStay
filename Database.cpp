@@ -435,6 +435,45 @@ INSERT INTO Habitacion (numero, piso, tipo, estado_actual, capacidad) VALUES
             }
         }
     }
+
+    // Theme 7 (Tasks 1 y 2): deja la tabla Permisos igual que la matriz
+    // definitiva de roles y permisos. Corre en cada arranque y es
+    // idempotente: INSERT OR IGNORE no duplica nada (la tabla tiene
+    // UNIQUE modulo+accion+rol), asi que tambien actualiza las bases de
+    // datos que se crearon antes de que existiera esta matriz, sin tener
+    // que borrarlas.
+    void aplicarPermisosBase(QSqlDatabase &db)
+    {
+        struct Permiso { const char *rol; const char *modulo; const char *accion; };
+        static const Permiso nuevos[] = {
+            { "recepcion",     "habitaciones", "entrar" },
+            { "limpieza",      "habitaciones", "editar" },
+            { "mantenimiento", "habitaciones", "editar" },
+            { "administrador", "bitacora",     "ver"    },
+            { "administrador", "reportes",     "ver"    },
+        };
+
+        for (const Permiso &p : nuevos) {
+            QSqlQuery q(db);
+            q.prepare(QStringLiteral(
+                "INSERT OR IGNORE INTO Permisos (modulo, accion_permitida, id_rol) "
+                "SELECT :modulo, :accion, id_rol FROM Rol WHERE nombre = :rol"));
+            q.bindValue(":modulo", QString::fromLatin1(p.modulo));
+            q.bindValue(":accion", QString::fromLatin1(p.accion));
+            q.bindValue(":rol", QString::fromLatin1(p.rol));
+            if (!q.exec()) {
+                qWarning() << "No se pudo aplicar el permiso base:" << q.lastError().text();
+            }
+        }
+
+        // "entrar" solo tiene sentido en habitaciones (acceso fisico sin
+        // llave); el esquema original lo sembraba tambien en otros modulos.
+        QSqlQuery quitar(db);
+        if (!quitar.exec(QStringLiteral(
+                "DELETE FROM Permisos WHERE accion_permitida = 'entrar' AND modulo <> 'habitaciones'"))) {
+            qWarning() << "No se pudieron limpiar permisos 'entrar':" << quitar.lastError().text();
+        }
+    }
 }
 
 namespace Database
@@ -499,6 +538,7 @@ namespace Database
         }
 
         sembrarHuespedDemo(db);
+        aplicarPermisosBase(db);
 
         return true;
     }

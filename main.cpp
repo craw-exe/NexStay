@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QStringList>
 
 #include "Database.h"
 
@@ -21,12 +22,13 @@ int main(int argc, char *argv[])
         &app,
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    //engine.loadFromModule("NexStay", "Main");
-    //engine.loadFromModule("NexStay", "RegistroHuesped");
-    //engine.loadFromModule("NexStay", "PantallaCalendarioReservas");
-    //engine.loadFromModule("NexStay", "PantallaLogin");
-    //engine.loadFromModule("NexStay", "PantallaBitacoraAcceso");
-    engine.loadFromModule("NexStay", "PantallaSolicitudes");
+    // Dos aplicaciones en un mismo ejecutable:
+    //   - Por defecto: la app del PERSONAL (login y vistas por rol).
+    //   - Con el argumento --kiosko: la pantalla de la HABITACION que usa
+    //     el huesped (Main.qml). En Qt Creator: Projects > Run >
+    //     "Command line arguments".
+    const bool modoKiosko = app.arguments().contains(QStringLiteral("--kiosko"));
+    engine.loadFromModule("NexStay", modoKiosko ? "Main" : "PantallaPrincipal");
 
     return QGuiApplication::exec();
 }
