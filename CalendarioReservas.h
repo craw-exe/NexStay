@@ -9,7 +9,7 @@
 
 // Theme 3, Task 4: vista de calendario de reservas (estilo Gantt:
 // habitaciones en filas, dias en columnas).
-//
+// hola quiero ver si jala
 // Esta clase solo LEE de la base de datos y le entrega a QML datos ya
 // listos para dibujar la cuadricula, para no tener que resolver fechas
 // ni hacer SQL desde el QML:
