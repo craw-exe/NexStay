@@ -31,6 +31,8 @@ qt_add_qml_module(appNexStay
         PantallaSolicitudes.qml
         PantallaPrincipal.qml
         PantallaAdministracion.qml
+        PantallaReportes.qml
+        PantallaHabitaciones.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
@@ -52,6 +54,12 @@ qt_add_qml_module(appNexStay
         AlertasPersonal.cpp
         AdministracionUsuarios.h
         AdministracionUsuarios.cpp
+        Reportes.h
+        Reportes.cpp
+        ListaHabitaciones.h
+        ListaHabitaciones.cpp
+    RESOURCES
+        datos_demo.sql
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

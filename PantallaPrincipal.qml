@@ -58,6 +58,9 @@ ApplicationWindow {
         { clave: "reservas", titulo: qsTr("Calendario de reservas"),
           descripcion: qsTr("Ocupación por habitación y día"),
           modulo: "reservas", accion: "ver" },
+        { clave: "habitaciones", titulo: qsTr("Habitaciones"),
+          descripcion: qsTr("Estado de cada habitación y huésped actual"),
+          modulo: "habitaciones", accion: "ver" },
         { clave: "huespedes", titulo: qsTr("Registrar huésped"),
           descripcion: qsTr("Alta de un nuevo huésped"),
           modulo: "huespedes", accion: "crear" },
@@ -66,8 +69,7 @@ ApplicationWindow {
           modulo: "bitacora", accion: "ver" },
         { clave: "reportes", titulo: qsTr("Reportes"),
           descripcion: qsTr("Ocupación, limpieza y solicitudes"),
-          modulo: "reportes", accion: "ver",
-          mensaje: qsTr("Los reportes se construyen en el Theme 8.") },
+          modulo: "reportes", accion: "ver" },
         { clave: "usuarios", titulo: qsTr("Usuarios y roles"),
           descripcion: qsTr("Cuentas y permisos"),
           modulo: "usuarios", accion: "ver" }
@@ -110,6 +112,8 @@ ApplicationWindow {
         case "huespedes":   pila.push(compHuespedes); break
         case "bitacora":    pila.push(compBitacora); break
         case "usuarios":    pila.push(compAdministracion); break
+        case "reportes":    pila.push(compReportes); break
+        case "habitaciones": pila.push(compHabitaciones); break
         default:            pila.push(compMarcador, { texto: vista.mensaje })
         }
     }
@@ -221,6 +225,8 @@ ApplicationWindow {
     Component { id: compHuespedes;   RegistroHuesped {} }
     Component { id: compBitacora;    PantallaBitacoraAcceso {} }
     Component { id: compAdministracion; PantallaAdministracion {} }
+    Component { id: compReportes;    PantallaReportes {} }
+    Component { id: compHabitaciones; PantallaHabitaciones {} }
     Component {
         id: compMarcador
         Item {
