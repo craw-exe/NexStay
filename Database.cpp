@@ -2,6 +2,8 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -436,6 +438,64 @@ INSERT INTO Habitacion (numero, piso, tipo, estado_actual, capacidad) VALUES
         }
     }
 
+    // Datos de demostracion: se leen del archivo datos_demo.sql (va
+    // dentro del ejecutable como recurso). Ese archivo parte del script
+    // "Tablas llenas" del equipo, adaptado al esquema actual, y agrega
+    // datos de volumen: 40 habitaciones, 22 usuarios, 68 huespedes,
+    // ~600 reservas de los ultimos 90 dias y ~600 solicitudes, para que
+    // el calendario, las solicitudes y los reportes (Theme 8) tengan
+    // que mostrar. Todas sus fechas son relativas a "hoy".
+    //
+    // Solo se carga una vez (si todavia no existe la huesped Sofia
+    // Navarro) y nunca con --sin-demo (instalacion real, Theme 9).
+    void sembrarDatosDemo(QSqlDatabase &db)
+    {
+        QSqlQuery yaExiste(db);
+        yaExiste.exec(QStringLiteral(
+            "SELECT 1 FROM Huesped WHERE documento_identidad = 'NASO900315MCLVRF01'"));
+        if (yaExiste.next()) {
+            return;
+        }
+
+        QFile archivo(QStringLiteral(":/qt/qml/NexStay/datos_demo.sql"));
+        if (!archivo.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "No se encontro datos_demo.sql en los recursos";
+            return;
+        }
+        const QStringList sentencias = dividirSentencias(QString::fromUtf8(archivo.readAll()));
+
+        // El trigger de Historial_Estado toma el usuario de Sesion_Actual
+        // y el script la cambia; se guarda la que hubiera para regresarla
+        // al final y no dejar a nadie con la sesion iniciada.
+        QSqlQuery sesion(db);
+        sesion.exec(QStringLiteral("SELECT id_usuario FROM Sesion_Actual WHERE id = 1"));
+        const QVariant sesionAnterior = sesion.next() ? sesion.value(0) : QVariant();
+
+        db.transaction();
+        bool ok = true;
+        for (const QString &sql : sentencias) {
+            QSqlQuery q(db);
+            if (!q.exec(sql)) {
+                qWarning() << "Datos demo:" << q.lastError().text() << "\n" << sql.left(300);
+                ok = false;
+                break;
+            }
+        }
+
+        QSqlQuery regresar(db);
+        regresar.prepare(QStringLiteral("UPDATE Sesion_Actual SET id_usuario = :id WHERE id = 1"));
+        regresar.bindValue(QStringLiteral(":id"), sesionAnterior);
+        regresar.exec();
+
+        if (ok) {
+            db.commit();
+            qDebug() << "Datos de demostracion cargados:" << sentencias.size() << "sentencias.";
+        } else {
+            db.rollback(); // todo o nada: si algo falla no se deja la demo a medias
+            qWarning() << "No se cargaron los datos de demostracion.";
+        }
+    }
+
     // Theme 7 (Tasks 1 y 2): deja la tabla Permisos igual que la matriz
     // definitiva de roles y permisos. Corre en cada arranque y es
     // idempotente: INSERT OR IGNORE no duplica nada (la tabla tiene
@@ -483,11 +543,21 @@ namespace Database
         return s_rutaArchivo;
     }
 
-    bool inicializar()
+    bool inicializar(const QString &rutaPersonalizada, bool cargarDemo)
     {
-        const QString carpeta = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        QDir().mkpath(carpeta);
-        s_rutaArchivo = carpeta + QStringLiteral("/nexstay_hotel.db");
+        // Theme 9: la ruta se puede cambiar para elegir donde vive la base
+        // en cada instalacion (por ejemplo, un disco que se respalda).
+        // Debe ser un disco LOCAL: SQLite en modo WAL no funciona bien en
+        // carpetas compartidas de red. Si no se indica, se usa la carpeta
+        // de datos de la aplicacion como hasta ahora.
+        if (rutaPersonalizada.isEmpty()) {
+            const QString carpeta = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+            QDir().mkpath(carpeta);
+            s_rutaArchivo = carpeta + QStringLiteral("/nexstay_hotel.db");
+        } else {
+            QDir().mkpath(QFileInfo(rutaPersonalizada).absolutePath());
+            s_rutaArchivo = rutaPersonalizada;
+        }
 
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"));
         db.setDatabaseName(s_rutaArchivo);
@@ -537,8 +607,11 @@ namespace Database
             qDebug() << "Esquema de NexStay ya existia, no se vuelve a crear.";
         }
 
-        sembrarHuespedDemo(db);
         aplicarPermisosBase(db);
+        if (cargarDemo) {
+            sembrarHuespedDemo(db);
+            sembrarDatosDemo(db);
+        }
 
         return true;
     }

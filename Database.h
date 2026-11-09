@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <QSqlDatabase>
+#include <QString>
 
 // Encargado de abrir la conexión SQLite de NexStay y, la primera vez
 // que se ejecuta en una máquina, crear todo el esquema (tablas,
@@ -14,7 +15,11 @@ namespace Database
     // activa el enforcement de llaves foráneas y, si las tablas todavía
     // no existen, ejecuta el esquema completo.
     // Devuelve true si la conexión quedó lista para usarse.
-    bool inicializar();
+    //
+    // Theme 9: rutaPersonalizada permite usar otro archivo (vacio = el de
+    // siempre) y cargarDemo = false deja la base sin datos de prueba,
+    // para instalarla en un hotel real.
+    bool inicializar(const QString &rutaPersonalizada = QString(), bool cargarDemo = true);
 
     // Ruta completa del archivo .db que se está usando. Útil para
     // mostrarla en los logs o para depuración.

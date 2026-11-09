@@ -8,7 +8,21 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    if (!Database::inicializar()) {
+    // Theme 9 (instalacion en otro hotel):
+    //   --db=<ruta>  usa ese archivo de base de datos, en un disco local
+    //                (tambien se puede poner en la variable de entorno NEXSTAY_DB).
+    //   --sin-demo   no carga habitaciones, huespedes ni solicitudes de prueba.
+    QString rutaBase = qEnvironmentVariable("NEXSTAY_DB");
+    bool cargarDemo = true;
+    for (const QString &argumento : app.arguments()) {
+        if (argumento.startsWith(QStringLiteral("--db="))) {
+            rutaBase = argumento.mid(5);
+        } else if (argumento == QStringLiteral("--sin-demo")) {
+            cargarDemo = false;
+        }
+    }
+
+    if (!Database::inicializar(rutaBase, cargarDemo)) {
         // La app puede seguir abriendo (para no dejar al usuario con una
         // pantalla negra), pero sin base de datos la interfaz no podra
         // leer ni guardar el estado de la habitacion.
