@@ -10,7 +10,7 @@
 
 namespace
 {
-    constexpr int kLargoMinimoContrasena = 6;
+    constexpr int kLargoMinimoContrasena = 8; // Theme 10: antes 6
 
     // Modulos y acciones asignables. 'entrar' (acceso fisico a la
     // habitacion) solo tiene sentido en 'habitaciones'; bitacora y

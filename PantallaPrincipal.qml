@@ -46,8 +46,6 @@ ApplicationWindow {
     // Titulo de la vista abierta ("" = estamos en el menu).
     property string vistaActual: ""
     property string textoBanner: ""
-    property string textoPrueba: ""
-    property bool pruebaConExito: false
 
     // Catalogo de vistas. "modulo" y "accion" son el permiso que pide
     // cada una; "mensaje" solo lo usan las que aun son marcador de lugar.
@@ -98,7 +96,6 @@ ApplicationWindow {
         // Se revisa de nuevo el permiso aunque la entrada ya estuviera
         // filtrada en el menu.
         if (!control.tienePermiso(vista.modulo, vista.accion)) {
-            textoPrueba = ""
             textoBanner = qsTr("Tu rol no tiene permiso para abrir esta vista.")
             banner.visible = true
             temporizadorBanner.restart()
@@ -137,7 +134,24 @@ ApplicationWindow {
         }
     }
 
+    // Theme 10: al abrir la app siempre se pide login (ya no se entra
+    // solo con el ultimo usuario).
     Component.onCompleted: Sesion.restaurarSesionGuardada()
+
+    // Theme 10: cierre de sesion tras 15 minutos sin mover el mouse ni
+    // cambiar de pantalla, para que nadie use la cuenta de otro en recepcion.
+    // shortcut: solo cuenta el movimiento del mouse; sumar teclado/toques
+    // si se usa en pantallas tactiles.
+    Timer {
+        id: inactividad
+        interval: 15 * 60 * 1000
+        running: Sesion.haySesion
+        onTriggered: {
+            Sesion.cerrarSesion()
+            login.limpiarFormulario()
+        }
+    }
+    onVistaActualChanged: inactividad.restart()
 
     // Si la sesion se cierra, se regresa al menu (y se muestra el login).
     Connections {
@@ -146,7 +160,6 @@ ApplicationWindow {
             if (!Sesion.haySesion) {
                 pila.pop(null)
                 window.vistaActual = ""
-                window.textoPrueba = ""
             }
         }
     }
@@ -167,30 +180,6 @@ ApplicationWindow {
         id: temporizadorBanner
         interval: 6000
         onTriggered: banner.visible = false
-    }
-
-    // --- Pruebas de desarrollo (quitar al terminar el proyecto) ---
-    ControlAcceso {
-        id: pruebaAcceso
-        onAccesoConcedido: function(tipoActor, idHabitacion) {
-            window.pruebaConExito = true
-            window.textoPrueba = qsTr("Acceso concedido a la habitación.")
-        }
-        onAccesoDenegado: function(tipoActor, idHabitacion, motivo) {
-            window.pruebaConExito = false
-            window.textoPrueba = motivo
-        }
-    }
-    SolicitudesHuesped {
-        id: simulador
-        onSolicitudCreada: function(tipo) {
-            window.pruebaConExito = true
-            window.textoPrueba = qsTr("Solicitud de %1 creada.").arg(tipo)
-        }
-        onOperacionRechazada: function(motivo) {
-            window.pruebaConExito = false
-            window.textoPrueba = motivo
-        }
     }
 
     // Boton de texto reutilizable.
@@ -329,46 +318,6 @@ ApplicationWindow {
                     onClicked: window.abrir(modelData)
                 }
             }
-
-            // Pruebas de desarrollo: comprueban en vivo el acceso fisico
-            // por rol (Theme 4) y la llegada de solicitudes (Theme 5).
-            footer: Item {
-                width: lista.width - lista.leftMargin - lista.rightMargin
-                height: pruebas.implicitHeight + 24
-
-                ColumnLayout {
-                    id: pruebas
-                    y: 24
-                    width: parent.width
-                    spacing: 8
-
-                    Label {
-                        text: qsTr("Pruebas de desarrollo (quitar al terminar)")
-                        color: window.colorTextoSecundario
-                        font.pixelSize: 11
-                    }
-                    BotonTexto {
-                        Layout.fillWidth: true
-                        texto: qsTr("Probar acceso a Habitación 204")
-                        // La habitacion de demostracion siempre queda
-                        // con id_habitacion = 1 (primera fila sembrada).
-                        onPulsado: pruebaAcceso.intentarAccesoPersonal(1)
-                    }
-                    BotonTexto {
-                        Layout.fillWidth: true
-                        texto: qsTr("Simular solicitud de limpieza del huésped")
-                        onPulsado: simulador.crearSolicitud("limpieza")
-                    }
-                    Label {
-                        visible: window.textoPrueba.length > 0
-                        text: window.textoPrueba
-                        color: window.pruebaConExito ? window.colorExito : window.colorError
-                        font.pixelSize: 11
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-                }
-            }
         }
     }
 
@@ -473,6 +422,10 @@ ApplicationWindow {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            HoverHandler {
+                onPointChanged: inactividad.restart()
+            }
 
             Rectangle {
                 anchors.fill: parent

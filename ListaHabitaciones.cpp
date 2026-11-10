@@ -1,5 +1,7 @@
 #include "ListaHabitaciones.h"
 
+#include "ControlAcceso.h"
+
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -24,6 +26,10 @@ bool ListaHabitaciones::puedeVer()
 
 QVariantList ListaHabitaciones::habitaciones()
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("habitaciones"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantList resultado;
 
     // La reserva "de hoy" es la confirmada cuya estancia incluye la fecha

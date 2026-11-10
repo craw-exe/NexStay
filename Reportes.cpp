@@ -1,5 +1,7 @@
 #include "Reportes.h"
 
+#include "ControlAcceso.h"
+
 #include <QDate>
 #include <QDebug>
 #include <QSqlError>
@@ -25,6 +27,10 @@ bool Reportes::puedeVerReportes()
 
 QVariantMap Reportes::estadoHabitaciones()
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reportes"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantMap resultado;
     QVariantList porEstado;
     int total = 0;
@@ -50,6 +56,10 @@ QVariantMap Reportes::estadoHabitaciones()
 
 QVariantMap Reportes::ocupacion(int dias)
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reportes"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     if (dias < 1) {
         dias = 1;
     }
@@ -104,6 +114,10 @@ QVariantMap Reportes::ocupacion(int dias)
 
 QVariantMap Reportes::resumenSolicitudes(int dias)
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reportes"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     if (dias < 1) {
         dias = 1;
     }
@@ -191,6 +205,10 @@ QVariantMap Reportes::resumenSolicitudes(int dias)
 
 QVariantList Reportes::pendientesLimpieza()
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reportes"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantList resultado;
 
     QSqlQuery query;
@@ -222,6 +240,10 @@ QVariantList Reportes::pendientesLimpieza()
 
 QVariantList Reportes::historialMantenimiento(int limite)
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reportes"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantList resultado;
 
     QSqlQuery query;

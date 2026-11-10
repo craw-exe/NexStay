@@ -1,5 +1,7 @@
 #include "CalendarioReservas.h"
 
+#include "ControlAcceso.h"
+
 #include <QDate>
 #include <QDebug>
 #include <QSqlError>
@@ -43,6 +45,10 @@ QString CalendarioReservas::sumarDias(const QString &fecha, int dias) const
 
 QVariantList CalendarioReservas::habitaciones()
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reservas"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantList resultado;
 
     QSqlQuery query;
@@ -67,6 +73,10 @@ QVariantList CalendarioReservas::habitaciones()
 
 QVariantList CalendarioReservas::reservasEntre(const QString &fechaInicio, const QString &fechaFin)
 {
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reservas"), QStringLiteral("ver"))) {
+        return {};
+    }
+
     QVariantList resultado;
 
     // Misma condicion de traslape que usan Reserva::habitacionDisponible()

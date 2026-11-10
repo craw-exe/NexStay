@@ -12,6 +12,11 @@ ControlAcceso::ControlAcceso(QObject *parent)
 
 bool ControlAcceso::tienePermiso(const QString &modulo, const QString &accion)
 {
+    return sesionTienePermiso(modulo, accion);
+}
+
+bool ControlAcceso::sesionTienePermiso(const QString &modulo, const QString &accion)
+{
     // Se consulta Sesion_Actual directamente (en vez de pedirle el
     // dato al singleton Sesion desde C++) porque esa fila es la misma
     // fuente de verdad que ya usa el trigger trg_actualizar_historial

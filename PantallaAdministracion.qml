@@ -403,7 +403,7 @@ Item {
             Campo { id: nombreNuevo; placeholderText: qsTr("Nombre") }
             Campo { id: apellidoNuevo; placeholderText: qsTr("Apellido") }
             Campo { id: correoNuevo; placeholderText: qsTr("Correo"); inputMethodHints: Qt.ImhEmailCharactersOnly }
-            Campo { id: contrasenaNueva; placeholderText: qsTr("Contraseña (mín. 6 caracteres)"); echoMode: TextInput.Password }
+            Campo { id: contrasenaNueva; placeholderText: qsTr("Contraseña (mín. 8 caracteres)"); echoMode: TextInput.Password }
             Flow {
                 Layout.fillWidth: true
                 spacing: 8

@@ -50,6 +50,10 @@ public:
     // rol. Devuelve false si no hay sesion activa.
     Q_INVOKABLE bool tienePermiso(const QString &modulo, const QString &accion);
 
+    // Misma revision, sin crear un objeto. Theme 10: la usan las clases
+    // que antes solo dependian de que el menu escondiera la pantalla.
+    static bool sesionTienePermiso(const QString &modulo, const QString &accion);
+
     // Intenta el acceso fisico de PERSONAL (usuario con sesion activa)
     // a una habitacion: inserta el evento en Bitacora_acceso y
     // devuelve true solo si el trigger de la BD lo dejo como

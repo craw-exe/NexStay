@@ -1,6 +1,8 @@
 #ifndef SESION_H
 #define SESION_H
 
+#include <QDateTime>
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QtQml/qqmlregistration.h>
@@ -57,21 +59,33 @@ public:
     // Cierra la sesion activa (limpia memoria y Sesion_Actual en la BD).
     Q_INVOKABLE void cerrarSesion();
 
-    // Se llama una vez al arrancar la app (ver PantallaLogin.qml,
-    // Component.onCompleted): si Sesion_Actual ya tenia un usuario
-    // guardado de una sesion anterior que no se cerro explicitamente,
-    // lo recupera sin pedir contrasena de nuevo.
+    // Theme 10 (seguridad): ya no se recupera la sesion anterior sin
+    // contrasena. Al abrir la app se limpia Sesion_Actual y siempre se
+    // pide login (antes, quien abriera la app entraba con el ultimo
+    // usuario, aunque fuera el administrador).
     Q_INVOKABLE void restaurarSesionGuardada();
 
-    // (Theme 7, Task 3: ahora es publica porque AdministracionUsuarios
-    // la usa al crear usuarios y restablecer contrasenas.)
-    // SHA-256 en hexadecimal. Nota de alcance: Qt no trae bcrypt ni
-    // argon2 "de fabrica" (que es lo recomendado para contrasenas en
-    // produccion, como ya advertia el propio script SQL del Sprint 2);
-    // usar una libreria externa de esas era mas complejidad de la que
-    // amerita este proyecto escolar. SHA-256 al menos evita guardar
-    // la contrasena en texto plano, que era el requisito minimo.
+    // Theme 10 (seguridad): la contrasena se guarda como
+    // "pbkdf2$<vueltas>$<sal hex>$<hash hex>" con PBKDF2-HMAC-SHA256 y
+    // una sal aleatoria por usuario. Asi dos usuarios con la misma
+    // contrasena no tienen el mismo hash y probar contrasenas a la
+    // fuerza es mucho mas lento. Lo usa tambien AdministracionUsuarios.
     static QString hashContrasena(const QString &contrasenaPlano);
+
+    // Compara una contrasena contra lo guardado. Acepta tambien el
+    // formato viejo (SHA-256 sin sal) para no dejar fuera a nadie; esos
+    // hashes se reemplazan por el nuevo la primera vez que el usuario entra.
+    static bool verificarContrasena(const QString &contrasenaPlano, const QString &guardado);
+    static bool esHashAntiguo(const QString &guardado);
+
+    // PBKDF2-HMAC-SHA256 (RFC 8018) de 32 bytes. Publica para probarla
+    // con los vectores conocidos en las pruebas unitarias.
+    static QByteArray pbkdf2Sha256(const QByteArray &contrasena, const QByteArray &sal, int vueltas);
+
+    // Bloqueo por intentos fallidos: tras kMaxIntentos errores seguidos
+    // con el mismo correo, ese correo no puede entrar por kMinutosBloqueo.
+    static constexpr int kMaxIntentos = 5;
+    static constexpr int kMinutosBloqueo = 5;
 
 signals:
     // Se emite tanto al iniciar como al cerrar sesion (cualquier
@@ -84,6 +98,13 @@ private:
 
     bool cargarUsuarioPorId(int idUsuario);
     void limpiarSesion();
+
+    // Intentos fallidos por correo (en memoria).
+    // shortcut: se reinician al cerrar la app; guardarlos en la base si
+    // se necesita que el bloqueo sobreviva a un reinicio.
+    struct Intentos { int fallos = 0; QDateTime bloqueadoHasta; };
+    QHash<QString, Intentos> m_intentos;
+    bool registrarFallo(const QString &correo);
 
     int m_idUsuario = -1;
     QString m_nombreCompleto;
