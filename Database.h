@@ -24,6 +24,16 @@ namespace Database
     // Ruta completa del archivo .db que se está usando. Útil para
     // mostrarla en los logs o para depuración.
     QString rutaArchivo();
+
+    // Theme 10: habitacion que muestra el modo kiosko. main.cpp guarda el
+    // numero de --habitacion=<numero>; si no se indico (o no existe), se
+    // usa la primera habitacion, como antes. Devuelve -1 si no hay ninguna.
+    void fijarHabitacionKiosko(const QString &numero);
+    int idHabitacionKiosko();
+
+    // Theme 10: copia la base a la carpeta "respaldos" junto al archivo,
+    // una vez al dia, y deja solo los ultimos 7 respaldos.
+    bool respaldarSiHaceFalta();
 }
 
 #endif // DATABASE_H

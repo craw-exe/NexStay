@@ -1,5 +1,6 @@
 #include "Database.h"
 
+#include <QDate>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -13,6 +14,7 @@
 namespace
 {
     QString s_rutaArchivo;
+    QString s_numeroKiosko;
 
     // Esquema completo del Sprint 2 (archivo "BASE DE DATOS 2.txt").
     // Se ejecuta una sola vez, la primera vez que la app corre en una
@@ -543,6 +545,65 @@ namespace Database
         return s_rutaArchivo;
     }
 
+    void fijarHabitacionKiosko(const QString &numero)
+    {
+        s_numeroKiosko = numero.trimmed();
+    }
+
+    int idHabitacionKiosko()
+    {
+        if (!s_numeroKiosko.isEmpty()) {
+            QSqlQuery porNumero;
+            porNumero.prepare(QStringLiteral("SELECT id_habitacion FROM Habitacion WHERE numero = :n"));
+            porNumero.bindValue(":n", s_numeroKiosko);
+            if (porNumero.exec() && porNumero.next()) {
+                return porNumero.value(0).toInt();
+            }
+            qWarning() << "No existe la habitacion" << s_numeroKiosko << "- se usa la primera.";
+        }
+        QSqlQuery primera;
+        if (primera.exec(QStringLiteral("SELECT MIN(id_habitacion) FROM Habitacion"))
+            && primera.next() && !primera.value(0).isNull()) {
+            return primera.value(0).toInt();
+        }
+        return -1;
+    }
+
+    bool respaldarSiHaceFalta()
+    {
+        if (s_rutaArchivo.isEmpty()) {
+            return false;
+        }
+        const QFileInfo info(s_rutaArchivo);
+        QDir carpeta(info.absolutePath() + QStringLiteral("/respaldos"));
+        if (!carpeta.exists() && !QDir().mkpath(carpeta.absolutePath())) {
+            qWarning() << "No se pudo crear la carpeta de respaldos:" << carpeta.absolutePath();
+            return false;
+        }
+        const QString nombre = info.completeBaseName() + QLatin1Char('_')
+                               + QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"))
+                               + QStringLiteral(".db");
+        if (carpeta.exists(nombre)) {
+            return true; // ya hay respaldo de hoy
+        }
+        // VACUUM INTO hace una copia completa y consistente aunque la base
+        // este en uso (en modo WAL copiar el .db a mano podria dejarla a medias).
+        QSqlQuery copia;
+        if (!copia.exec(QStringLiteral("VACUUM INTO '%1'")
+                            .arg(carpeta.absoluteFilePath(nombre).replace(QLatin1Char('\''), QStringLiteral("''"))))) {
+            qWarning() << "No se pudo respaldar la base de datos:" << copia.lastError().text();
+            return false;
+        }
+        qDebug() << "Respaldo de la base creado en:" << carpeta.absoluteFilePath(nombre);
+
+        const QStringList respaldos = carpeta.entryList(
+            {info.completeBaseName() + QStringLiteral("_*.db")}, QDir::Files, QDir::Name);
+        for (int i = 0; i < respaldos.size() - 7; ++i) {
+            carpeta.remove(respaldos.at(i));
+        }
+        return true;
+    }
+
     bool inicializar(const QString &rutaPersonalizada, bool cargarDemo)
     {
         // Theme 9: la ruta se puede cambiar para elegir donde vive la base
@@ -584,7 +645,17 @@ namespace Database
         QSqlQuery walMode(db);
         if (!walMode.exec(QStringLiteral("PRAGMA journal_mode = WAL;"))) {
             qWarning() << "No se pudo activar journal_mode WAL:" << walMode.lastError().text();
+        } else if (walMode.next()) {
+            // SQLite responde el modo que quedo; si no es "wal" (por ejemplo
+            // en una carpeta de red), se avisa en lugar de fallar en silencio.
+            const QString modo = walMode.value(0).toString();
+            if (modo.compare(QLatin1String("wal"), Qt::CaseInsensitive) != 0) {
+                qWarning() << "SQLite no pudo usar el modo WAL, quedo en:" << modo;
+            } else {
+                qDebug() << "Modo de diario de SQLite:" << modo;
+            }
         }
+        walMode.finish();
 
         QSqlQuery existe(db);
         existe.exec(QStringLiteral(

@@ -58,6 +58,8 @@ qt_add_qml_module(appNexStay
         Reportes.cpp
         ListaHabitaciones.h
         ListaHabitaciones.cpp
+        Recepcion.h
+        Recepcion.cpp
     RESOURCES
         datos_demo.sql
 )
@@ -76,6 +78,10 @@ set_target_properties(appNexStay PROPERTIES
 target_link_libraries(appNexStay
     PRIVATE Qt6::Quick Qt6::Sql
 )
+
+# Theme 10: pruebas unitarias (carpeta tests).
+enable_testing()
+add_subdirectory(tests)
 
 install(TARGETS appNexStay
     BUNDLE DESTINATION .

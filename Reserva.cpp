@@ -1,5 +1,7 @@
 #include "Reserva.h"
 
+#include "ControlAcceso.h"
+
 #include <QDate>
 #include <QDebug>
 #include <QSqlError>
@@ -70,10 +72,41 @@ bool Reserva::crearReserva(int idHuesped,
                             const QString &fechaEntrada,
                             const QString &fechaSalida)
 {
+    // Theme 10: el permiso tambien se revisa aqui, no solo en el menu.
+    if (!ControlAcceso::sesionTienePermiso(QStringLiteral("reservas"), QStringLiteral("crear"))) {
+        emit reservaRechazada(QStringLiteral("Tu rol no tiene permiso para crear reservas."));
+        return false;
+    }
+
     QString motivoError;
 
     if (!fechasValidas(fechaEntrada, fechaSalida, &motivoError)) {
         emit reservaRechazada(motivoError);
+        return false;
+    }
+
+    if (QDate::fromString(fechaEntrada, QStringLiteral("yyyy-MM-dd")) < QDate::currentDate()) {
+        emit reservaRechazada(QStringLiteral("La fecha de entrada no puede ser anterior a hoy."));
+        return false;
+    }
+
+    QSqlQuery habitacion;
+    habitacion.prepare(QStringLiteral("SELECT estado_actual FROM Habitacion WHERE id_habitacion = :id"));
+    habitacion.bindValue(":id", idHabitacion);
+    if (!habitacion.exec() || !habitacion.next()) {
+        emit reservaRechazada(QStringLiteral("La habitacion no existe."));
+        return false;
+    }
+    if (habitacion.value(0).toString() == QLatin1String("fuera de servicio")) {
+        emit reservaRechazada(QStringLiteral("La habitacion esta fuera de servicio."));
+        return false;
+    }
+
+    QSqlQuery huesped;
+    huesped.prepare(QStringLiteral("SELECT 1 FROM Huesped WHERE id_huesped = :id"));
+    huesped.bindValue(":id", idHuesped);
+    if (!huesped.exec() || !huesped.next()) {
+        emit reservaRechazada(QStringLiteral("Elige un huesped registrado."));
         return false;
     }
 
@@ -103,6 +136,20 @@ bool Reserva::crearReserva(int idHuesped,
     }
 
     const int idReserva = query.lastInsertId().toInt();
+
+    // Theme 10: si el huesped llega hoy o manana, la habitacion libre
+    // queda apartada para que nadie la ocupe por error.
+    QSqlQuery apartar;
+    apartar.prepare(QStringLiteral(
+        "UPDATE Habitacion SET estado_actual = 'reservada' "
+        "WHERE id_habitacion = :id AND estado_actual = 'libre' "
+        "  AND date(:entrada) <= date('now','localtime','+1 day')"));
+    apartar.bindValue(":id", idHabitacion);
+    apartar.bindValue(":entrada", fechaEntrada);
+    if (!apartar.exec()) {
+        qWarning() << "No se pudo apartar la habitacion:" << apartar.lastError().text();
+    }
+
     emit reservaCreada(idReserva);
     return true;
 }

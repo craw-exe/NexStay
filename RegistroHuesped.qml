@@ -1,13 +1,11 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import NexStay
 
 // Theme 3, Task 1: formulario de registro de huésped.
-// Por ahora es solo la interfaz (Opción B: dos columnas) con
-// validación básica de campos obligatorios. Todavía NO guarda en la
-// base de datos: eso se conectará en el task de "lógica de
-// validación de disponibilidad" / registro, junto con la tabla
-// Huesped (nombre, apellido, documento_identidad, telefono, correo).
+// Theme 10: ya guarda en la tabla Huesped por medio de la clase
+// Recepcion (C++), que valida permisos, formato y documento repetido.
 // Theme 7, Task 2: esta pantalla ya no es una ventana propia, sino una
 // vista (Item) que PantallaPrincipal abre dentro de su ventana, solo
 // para los roles que tienen el permiso correspondiente.
@@ -22,6 +20,22 @@ Item {
     property color colorTextoSecundario: "#8a8a8a"
     property color colorTextoClaro: "#f2f2f2"
     property color colorError: "#e05c5c"
+    property color colorExito: "#6fcf97"
+
+    Recepcion {
+        id: recepcion
+        onOperacionRechazada: function(motivo) {
+            mensajeValidacion.text = motivo
+            mensajeValidacion.color = window.colorError
+            mensajeValidacion.visible = true
+        }
+        onHuespedRegistrado: function(idHuesped, nombre) {
+            mensajeValidacion.text = qsTr("Huésped registrado: %1. Ya puedes hacerle una reserva en el calendario.").arg(nombre)
+            mensajeValidacion.color = window.colorExito
+            mensajeValidacion.visible = true
+            window.limpiarFormulario()
+        }
+    }
 
     // Campos obligatorios según la tabla Huesped (todos NOT NULL).
     // Se habilita "Registrar" solo cuando los 5 tienen contenido.
@@ -203,6 +217,8 @@ Item {
                 color: window.colorError
                 font.pixelSize: 11
                 visible: false
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
             }
 
             Item { Layout.fillHeight: true }
@@ -261,18 +277,15 @@ Item {
                     }
                     onClicked: {
                         if (!window.formularioValido) {
+                            mensajeValidacion.text = qsTr("Completa todos los campos antes de registrar.")
+                            mensajeValidacion.color = window.colorError
                             mensajeValidacion.visible = true
                             return
                         }
                         mensajeValidacion.visible = false
-                        // TODO (siguiente task de Theme 3): guardar en la
-                        // tabla Huesped de la base de datos (INSERT INTO
-                        // Huesped ...), en vez de solo limpiar el formulario.
-                        console.log("Registro listo para guardar:",
-                                    campoNombre.text, campoApellido.text,
-                                    campoDocumento.text, campoTelefono.text,
-                                    campoCorreo.text)
-                        window.limpiarFormulario()
+                        recepcion.registrarHuesped(campoNombre.text, campoApellido.text,
+                                                   campoDocumento.text, campoTelefono.text,
+                                                   campoCorreo.text)
                     }
                 }
             }

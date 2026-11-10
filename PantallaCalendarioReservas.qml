@@ -45,6 +45,62 @@ Item {
         id: modelo
     }
 
+    // Theme 10: desde el calendario se hacen las reservas y el check-in /
+    // check-out. Celda libre -> nueva reserva; celda dorada -> detalle.
+    property var detalle: ({})
+    property var nueva: ({ idHabitacion: -1, numero: "", entrada: "" })
+    property var resultados: []
+    property var huespedElegido: null
+    property string aviso: ""
+    property bool avisoEsError: false
+
+    Reserva {
+        id: reserva
+        onReservaCreada: function(idReserva) {
+            popupNueva.close()
+            window.mostrarAviso(qsTr("Reserva creada para la habitación %1.").arg(window.nueva.numero), false)
+            window.cargarDatos()
+        }
+        onReservaRechazada: function(motivo) {
+            errorNueva.text = motivo
+        }
+    }
+
+    Recepcion {
+        id: recepcion
+        onOperacionRealizada: function(mensaje) {
+            popupDetalle.close()
+            window.mostrarAviso(mensaje, false)
+            window.cargarDatos()
+        }
+        onOperacionRechazada: function(motivo) {
+            errorDetalle.text = motivo
+        }
+    }
+
+    function mostrarAviso(texto, esError) {
+        aviso = texto
+        avisoEsError = esError
+    }
+
+    function abrirNueva(habitacion, fecha) {
+        nueva = { idHabitacion: habitacion.idHabitacion, numero: habitacion.numero, entrada: fecha }
+        huespedElegido = null
+        errorNueva.text = ""
+        campoNoches.value = 1
+        campoBuscar.text = ""
+        resultados = recepcion.buscarHuespedes("")
+        popupNueva.open()
+    }
+
+    function abrirDetalle(idReserva) {
+        detalle = recepcion.detalleReserva(idReserva)
+        errorDetalle.text = ""
+        if (detalle.idReserva !== undefined) {
+            popupDetalle.open()
+        }
+    }
+
     function cargarDatos() {
         dias = modelo.rangoFechas(fechaInicio, window.totalDias)
         if (dias.length === 0) {
@@ -103,9 +159,11 @@ Item {
             anchors.margins: 20
             spacing: 14
 
-            // Encabezado: título + navegación
-            RowLayout {
+            // Encabezado: título + navegación. Flow (y no RowLayout) para
+            // que los botones bajen de renglon en ventanas angostas.
+            Flow {
                 Layout.fillWidth: true
+                spacing: 12
 
                 ColumnLayout {
                     spacing: 2
@@ -124,19 +182,20 @@ Item {
                     }
                 }
 
-                Item { Layout.fillWidth: true }
-
-                Button {
-                    text: qsTr("‹ Semana")
-                    onClicked: window.moverDias(-7)
-                }
-                Button {
-                    text: qsTr("Hoy")
-                    onClicked: window.irAHoy()
-                }
-                Button {
-                    text: qsTr("Semana ›")
-                    onClicked: window.moverDias(7)
+                Row {
+                    spacing: 6
+                    Button {
+                        text: qsTr("‹ Semana")
+                        onClicked: window.moverDias(-7)
+                    }
+                    Button {
+                        text: qsTr("Hoy")
+                        onClicked: window.irAHoy()
+                    }
+                    Button {
+                        text: qsTr("Semana ›")
+                        onClicked: window.moverDias(7)
+                    }
                 }
             }
 
@@ -153,6 +212,20 @@ Item {
                     Rectangle { width: 14; height: 14; radius: 3; color: window.colorTarjeta; border.color: window.colorBorde; border.width: 1; anchors.verticalCenter: parent.verticalCenter }
                     Label { text: qsTr("Libre"); color: window.colorTextoSecundario; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 }
+            }
+
+            Label {
+                visible: window.aviso.length > 0
+                text: window.aviso
+                color: window.avisoEsError ? "#e05c5c" : "#6fcf97"
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Label {
+                text: qsTr("Toca una celda libre para reservar o una dorada para ver la reserva.")
+                color: window.colorTextoSecundario
+                font.pixelSize: 11
             }
 
             // Cuadrícula (con scroll horizontal y vertical)
@@ -232,6 +305,14 @@ Item {
                                     border.color: window.colorBorde
                                     border.width: 1
 
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: parent.reserva !== null
+                                                   ? window.abrirDetalle(parent.reserva.idReserva)
+                                                   : window.abrirNueva(filaHabitacion.modelData, parent.modelData)
+                                    }
+
                                     Label {
                                         visible: parent.esInicioDeReserva
                                         anchors.fill: parent
@@ -246,6 +327,172 @@ Item {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // --- Nueva reserva ---
+    Popup {
+        id: popupNueva
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 32, 420)
+        modal: true
+        padding: 18
+        background: Rectangle { color: "#1a1a1a"; radius: 12; border.color: window.colorDorado; border.width: 1 }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 8
+            Label {
+                text: qsTr("Nueva reserva · Hab. %1").arg(window.nueva.numero)
+                color: window.colorDorado
+                font.pixelSize: 16
+                font.weight: Font.Medium
+            }
+            RowLayout {
+                spacing: 10
+                Label { text: qsTr("Entrada: %1").arg(window.nueva.entrada); color: window.colorTextoClaro; font.pixelSize: 12 }
+                Label { text: qsTr("Noches:"); color: window.colorTextoSecundario; font.pixelSize: 12 }
+                SpinBox { id: campoNoches; from: 1; to: 30; value: 1 }
+            }
+            Label {
+                text: window.nueva.entrada.length > 0
+                      ? qsTr("Salida: %1").arg(modelo.sumarDias(window.nueva.entrada, campoNoches.value))
+                      : ""
+                color: window.colorTextoSecundario
+                font.pixelSize: 12
+            }
+            TextField {
+                id: campoBuscar
+                Layout.fillWidth: true
+                placeholderText: qsTr("Buscar huésped por nombre o documento")
+                onTextChanged: window.resultados = recepcion.buscarHuespedes(text)
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 150
+                clip: true
+                model: window.resultados
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 34
+                    color: window.huespedElegido && window.huespedElegido.idHuesped === modelData.idHuesped
+                           ? "#3a3218" : "transparent"
+                    Label {
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: 8
+                        text: modelData.nombre + "  ·  " + modelData.documento
+                        color: window.colorTextoClaro
+                        font.pixelSize: 12
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: window.huespedElegido = parent.modelData
+                    }
+                }
+            }
+            Label {
+                visible: window.resultados.length === 0
+                text: qsTr("No hay huéspedes con ese dato. Regístralo primero en \"Registrar huésped\".")
+                color: window.colorTextoSecundario
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Label {
+                id: errorNueva
+                visible: text.length > 0
+                color: "#e05c5c"
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                Button { text: qsTr("Cancelar"); onClicked: popupNueva.close() }
+                Button {
+                    text: qsTr("Reservar")
+                    enabled: window.huespedElegido !== null
+                    onClicked: {
+                        errorNueva.text = ""
+                        reserva.crearReserva(window.huespedElegido.idHuesped, window.nueva.idHabitacion,
+                                             window.nueva.entrada,
+                                             modelo.sumarDias(window.nueva.entrada, campoNoches.value))
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Detalle de una reserva: check-in, check-out o cancelar ---
+    Popup {
+        id: popupDetalle
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 32, 400)
+        modal: true
+        padding: 18
+        background: Rectangle { color: "#1a1a1a"; radius: 12; border.color: window.colorDorado; border.width: 1 }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 6
+            Label {
+                text: qsTr("Reserva #%1 · Hab. %2").arg(window.detalle.idReserva).arg(window.detalle.numero)
+                color: window.colorDorado
+                font.pixelSize: 16
+                font.weight: Font.Medium
+            }
+            Label {
+                text: qsTr("%1 (%2)").arg(window.detalle.huesped).arg(window.detalle.documento)
+                color: window.colorTextoClaro
+                font.pixelSize: 13
+            }
+            Label {
+                text: qsTr("Del %1 al %2").arg(window.detalle.entrada).arg(window.detalle.salida)
+                color: window.colorTextoSecundario
+                font.pixelSize: 12
+            }
+            Label {
+                text: window.detalle.enEstadia ? qsTr("Huésped hospedado (check-in hecho)")
+                                               : qsTr("Estado: %1").arg(window.detalle.estado)
+                color: window.detalle.enEstadia ? "#6fcf97" : window.colorTextoSecundario
+                font.pixelSize: 12
+            }
+            Label {
+                id: errorDetalle
+                visible: text.length > 0
+                color: "#e05c5c"
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Flow {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                spacing: 8
+                Button {
+                    visible: window.detalle.puedeCheckIn === true
+                    text: qsTr("Check-in")
+                    onClicked: recepcion.checkIn(window.detalle.idReserva)
+                }
+                Button {
+                    visible: window.detalle.puedeCheckOut === true
+                    text: qsTr("Check-out")
+                    onClicked: recepcion.checkOut(window.detalle.idReserva)
+                }
+                Button {
+                    visible: window.detalle.puedeCancelar === true
+                    text: qsTr("Cancelar reserva")
+                    onClicked: recepcion.cancelarReserva(window.detalle.idReserva)
+                }
+                Button {
+                    text: qsTr("Cerrar")
+                    onClicked: popupDetalle.close()
                 }
             }
         }

@@ -1,5 +1,7 @@
 #include "SolicitudesHuesped.h"
 
+#include "Database.h"
+
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -63,16 +65,13 @@ void SolicitudesHuesped::revisarSolicitudesAtendidas()
 
 void SolicitudesHuesped::cargarDesdeBaseDeDatos()
 {
-    // Misma regla que Habitacion::cargarDesdeBaseDeDatos(): por ahora,
-    // la primera habitacion de la BD.
-    QSqlQuery query;
-    if (!query.exec(QStringLiteral(
-            "SELECT id_habitacion FROM Habitacion ORDER BY id_habitacion LIMIT 1"))
-        || !query.next()) {
+    // Misma habitacion que Habitacion::cargarDesdeBaseDeDatos()
+    // (la de --habitacion=<numero>, o la primera si no se indico).
+    m_idHabitacion = Database::idHabitacionKiosko();
+    if (m_idHabitacion < 0) {
         qWarning() << "SolicitudesHuesped: no hay habitaciones en la BD.";
         return;
     }
-    m_idHabitacion = query.value("id_habitacion").toInt();
 
     QSqlQuery presencia;
     presencia.prepare(QStringLiteral(

@@ -1,5 +1,7 @@
 #include "Habitacion.h"
 
+#include "Database.h"
+
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -21,7 +23,8 @@ void Habitacion::cargarDesdeBaseDeDatos()
     QSqlQuery query;
     query.prepare(QStringLiteral(
         "SELECT id_habitacion, numero, piso, tipo, estado_actual, capacidad "
-        "FROM Habitacion ORDER BY id_habitacion LIMIT 1"));
+        "FROM Habitacion WHERE id_habitacion = :id"));
+    query.bindValue(":id", Database::idHabitacionKiosko());
 
     if (!query.exec()) {
         qWarning() << "No se pudo leer Habitacion:" << query.lastError().text();
