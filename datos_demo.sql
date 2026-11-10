@@ -1965,3 +1965,49 @@ FROM (VALUES
 (NULL, 'GEN-0006', '410', 'huesped', -302, 'entrada')
 ) v
 JOIN Habitacion h ON h.numero = v.column3;
+
+-- ===== Ajuste final (Sprint 10): que los estados cuadren con las reservas =====
+-- Habitacion de la pantalla de demostracion (204): el huesped demo queda
+-- con una reserva real de ayer a dentro de 3 dias.
+UPDATE Reserva SET estado_reserva = 'cancelada'
+WHERE estado_reserva = 'confirmada'
+  AND id_habitacion = (SELECT id_habitacion FROM Habitacion WHERE numero = '204')
+  AND date(fecha_entrada) < date('now','localtime','+3 days')
+  AND date(fecha_salida) > date('now','localtime','-1 day');
+INSERT INTO Reserva (id_huesped, id_habitacion, fecha_entrada, fecha_salida, estado_reserva)
+SELECT hu.id_huesped, h.id_habitacion, date('now','localtime','-1 day'), date('now','localtime','+3 days'), 'confirmada'
+FROM Huesped hu, Habitacion h WHERE hu.documento_identidad = 'DEMO-0001' AND h.numero = '204';
+UPDATE Historial_Estadia SET id_reserva = (SELECT MAX(id_reserva) FROM Reserva r JOIN Huesped hu ON hu.id_huesped = r.id_huesped WHERE hu.documento_identidad = 'DEMO-0001')
+WHERE fecha_salida_real IS NULL AND id_huesped = (SELECT id_huesped FROM Huesped WHERE documento_identidad = 'DEMO-0001');
+-- Fuera de servicio: sin reservas pendientes ni huespedes adentro.
+UPDATE Reserva SET estado_reserva = 'cancelada'
+WHERE estado_reserva = 'confirmada' AND date(fecha_salida) > date('now','localtime')
+  AND id_habitacion IN (SELECT id_habitacion FROM Habitacion WHERE estado_actual = 'fuera de servicio');
+UPDATE Historial_Estadia SET fecha_salida_real = datetime('now','localtime','-1 day')
+WHERE fecha_salida_real IS NULL
+  AND id_habitacion IN (SELECT id_habitacion FROM Habitacion WHERE estado_actual = 'fuera de servicio');
+-- Estancias abiertas que ya no tienen una reserva vigente: se cierran.
+UPDATE Historial_Estadia SET fecha_salida_real = datetime('now','localtime','-2 hours')
+WHERE fecha_salida_real IS NULL AND NOT EXISTS (
+  SELECT 1 FROM Reserva r WHERE r.id_habitacion = Historial_Estadia.id_habitacion
+    AND r.id_huesped = Historial_Estadia.id_huesped AND r.estado_reserva = 'confirmada'
+    AND date(r.fecha_entrada) <= date('now','localtime') AND date(r.fecha_salida) > date('now','localtime'));
+-- Reserva vigente sin check-in: se registra la entrada el dia que llego.
+INSERT INTO Historial_Estadia (id_reserva, id_huesped, id_habitacion, fecha_entrada_real)
+SELECT r.id_reserva, r.id_huesped, r.id_habitacion, datetime(r.fecha_entrada, '+15 hours')
+FROM Reserva r
+WHERE r.estado_reserva = 'confirmada'
+  AND date(r.fecha_entrada) <= date('now','localtime') AND date(r.fecha_salida) > date('now','localtime')
+  AND NOT EXISTS (SELECT 1 FROM Historial_Estadia e WHERE e.id_habitacion = r.id_habitacion AND e.fecha_salida_real IS NULL);
+-- Estado de cada habitacion segun lo anterior.
+UPDATE Habitacion SET estado_actual = 'ocupada'
+WHERE estado_actual <> 'fuera de servicio'
+  AND id_habitacion IN (SELECT id_habitacion FROM Historial_Estadia WHERE fecha_salida_real IS NULL);
+UPDATE Habitacion SET estado_actual = 'libre'
+WHERE estado_actual IN ('ocupada','reservada')
+  AND id_habitacion NOT IN (SELECT id_habitacion FROM Historial_Estadia WHERE fecha_salida_real IS NULL)
+  AND NOT EXISTS (SELECT 1 FROM Reserva r WHERE r.id_habitacion = Habitacion.id_habitacion
+    AND r.estado_reserva = 'confirmada' AND date(r.fecha_entrada) BETWEEN date('now','localtime') AND date('now','localtime','+1 day'));
+UPDATE Habitacion SET estado_actual = 'reservada'
+WHERE estado_actual = 'libre' AND EXISTS (SELECT 1 FROM Reserva r WHERE r.id_habitacion = Habitacion.id_habitacion
+    AND r.estado_reserva = 'confirmada' AND date(r.fecha_entrada) BETWEEN date('now','localtime') AND date('now','localtime','+1 day'));
