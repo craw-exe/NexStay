@@ -53,7 +53,7 @@ QVariantList CalendarioReservas::habitaciones()
 
     QSqlQuery query;
     query.prepare(QStringLiteral(
-        "SELECT id_habitacion, numero, tipo FROM Habitacion ORDER BY numero"));
+        "SELECT id_habitacion, numero, tipo, estado_actual FROM Habitacion ORDER BY numero"));
 
     if (!query.exec()) {
         qWarning() << "No se pudo leer Habitacion para el calendario:" << query.lastError().text();
@@ -65,6 +65,7 @@ QVariantList CalendarioReservas::habitaciones()
         fila[QStringLiteral("idHabitacion")] = query.value("id_habitacion").toInt();
         fila[QStringLiteral("numero")] = query.value("numero").toString();
         fila[QStringLiteral("tipo")] = query.value("tipo").toString();
+        fila[QStringLiteral("estado")] = query.value("estado_actual").toString();
         resultado.append(fila);
     }
 

@@ -26,12 +26,14 @@ public:
     explicit Recepcion(QObject *parent = nullptr);
 
     // Permiso ('huespedes','crear'). Devuelve el id del huesped o -1.
+    // Theme 11: el correo es opcional.
     Q_INVOKABLE int registrarHuesped(const QString &nombre, const QString &apellido,
                                      const QString &documento, const QString &telefono,
                                      const QString &correo);
 
     // Huespedes cuyo nombre, apellido o documento contienen el texto.
-    // Cada elemento: { idHuesped, nombre, documento }.
+    // Busca tambien por telefono (Theme 11).
+    // Cada elemento: { idHuesped, nombre, documento, telefono }.
     Q_INVOKABLE QVariantList buscarHuespedes(const QString &texto, int limite = 20);
 
     // { idReserva, huesped, documento, numero, entrada, salida, estado,

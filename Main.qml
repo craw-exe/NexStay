@@ -1,29 +1,25 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Layouts
 import NexStay
 
+// Pantalla de la HABITACION (modo kiosko, se abre con --kiosko).
+// Rediseño de interfaz (revisión 11/nov): fondo claro, color por estado
+// y botones grandes con icono y texto para que el huesped entienda
+// todo sin explicacion.
 ApplicationWindow {
     id: window
-    width: 420
-    height: 640
+    width: 480
+    height: 760
     minimumWidth: 360
-    minimumHeight: 560
+    minimumHeight: 600
     visible: true
     title: qsTr("NexStay - Habitación")
-
-    // Paleta NexStay
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#161616"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorExito: "#6fcf97"
+    font.family: "Segoe UI"
 
     // --- Theme 5 (Task 1: interfaz, Task 2: guardado) ---
-    // La presencia YA NO vive solo en memoria: viene de Estado_Presencia
-    // via SolicitudesHuesped (Task 2). Es un binding de solo lectura;
-    // para cambiarla se llama a solicitudes.cambiarPresencia().
+    // La presencia viene de Estado_Presencia via SolicitudesHuesped.
+    // Para cambiarla se llama a solicitudes.cambiarPresencia().
     property bool estoyDentro: solicitudes.presencia === "dentro"
     // "limpieza" o "mantenimiento" mientras se espera la confirmacion
     // del huesped en el popup; vacio si no hay ninguna pendiente.
@@ -37,57 +33,66 @@ ApplicationWindow {
 
     Timer {
         id: temporizadorAviso
-        interval: 2500
+        interval: 3000
         onTriggered: avisoEnviado.opacity = 0
     }
 
-    // Boton redondo con icono y etiqueta debajo, para la fila inferior.
-    component BotonAccion: Item {
+    // Boton grande con icono y texto (fila inferior).
+    component BotonAccion: Rectangle {
         id: raiz
         property string icono
         property string etiqueta
+        property string detalle
         property bool resaltado: false
-        // Colores propios (en vez de leer los del window) para que el
-        // componente no dependa de ids externos.
-        property color colorActivo: "#6fcf97"
-        property color colorTexto: "#f2f2f2"
-        property color colorEtiqueta: "#8a8a8a"
+        property color tono: Tema.primario
+        property color tonoSuave: Tema.primarioSuave
         signal tocado()
 
-        implicitWidth: 72
-        implicitHeight: 70
+        implicitHeight: 128
+        radius: Tema.radioGrande
+        color: raiz.resaltado ? raiz.tonoSuave : Tema.tarjeta
+        border.width: raiz.resaltado ? 2 : 1
+        border.color: raiz.resaltado ? raiz.tono : Tema.borde
+        scale: area.pressed ? 0.96 : 1.0
+        Behavior on scale { NumberAnimation { duration: 90 } }
 
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 5
-
+        ColumnLayout {
+            anchors.centerIn: parent
+            width: parent.width - 16
+            spacing: 4
             Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 46
-                height: 46
-                radius: 23
-                color: area.pressed ? "#1f1f1f" : "transparent"
-                border.width: 1
-                border.color: raiz.resaltado ? raiz.colorActivo : "#444444"
-
+                Layout.alignment: Qt.AlignHCenter
+                width: 50; height: 50; radius: 16
+                color: raiz.tonoSuave
                 Label {
                     anchors.centerIn: parent
                     text: raiz.icono
-                    color: raiz.resaltado ? raiz.colorActivo : raiz.colorTexto
-                    font.pixelSize: 20
+                    font.family: Tema.fuenteIconos
+                    font.pixelSize: 24
                 }
             }
             Label {
-                anchors.horizontalCenter: parent.horizontalCenter
+                Layout.alignment: Qt.AlignHCenter
                 text: raiz.etiqueta
-                color: raiz.colorEtiqueta
-                font.pixelSize: 11
+                color: Tema.texto
+                font.pixelSize: 15
+                font.weight: Font.DemiBold
+            }
+            Label {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                text: raiz.detalle
+                color: Tema.textoSecundario
+                font.pixelSize: 12
+                elide: Text.ElideRight
             }
         }
 
         MouseArea {
             id: area
             anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
             onClicked: raiz.tocado()
         }
     }
@@ -123,19 +128,19 @@ ApplicationWindow {
 
     Timer {
         id: temporizadorError
-        interval: 3000
+        interval: 4000
         onTriggered: mensajeError.visible = false
     }
 
-    // Icono por estado, usado tanto en el círculo central como en el menú
+    // Icono, texto y color por estado (circulo central y menu).
     function iconoPara(estado) {
         switch (estado) {
-        case "ocupada": return "■"
-        case "libre": return "✓"
-        case "en limpieza": return "✨"
-        case "reservada": return "⧖"
-        case "fuera de servicio": return "⚠"
-        default: return "?"
+        case "ocupada": return "🛏️"
+        case "libre": return "✅"
+        case "en limpieza": return "🧹"
+        case "reservada": return "⏳"
+        case "fuera de servicio": return "⚠️"
+        default: return "❔"
         }
     }
 
@@ -150,127 +155,220 @@ ApplicationWindow {
         }
     }
 
+    function colorPara(estado) {
+        switch (estado) {
+        case "ocupada": return Tema.primario
+        case "libre": return Tema.exito
+        case "en limpieza": return Tema.aviso
+        case "reservada": return Tema.neutro
+        default: return Tema.error
+        }
+    }
+
+    function colorSuavePara(estado) {
+        switch (estado) {
+        case "ocupada": return Tema.primarioSuave
+        case "libre": return Tema.exitoSuave
+        case "en limpieza": return Tema.avisoSuave
+        case "reservada": return Tema.neutroSuave
+        default: return Tema.errorSuave
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
-        color: window.colorFondo
+        color: Tema.fondo
+    }
 
-        Column {
-            anchors.centerIn: parent
+    Flickable {
+        anchors.fill: parent
+        contentHeight: contenido.implicitHeight + 48
+        boundsBehavior: Flickable.StopAtBounds
+
+        ColumnLayout {
+            id: contenido
+            width: Math.min(parent.width - 32, 520)
+            x: (parent.width - width) / 2
+            y: 24
             spacing: 18
 
-            // Encabezado: número de habitación
-            Column {
-                width: parent.width
-                spacing: 2
-                Label {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTr("HABITACIÓN")
-                    color: window.colorTextoSecundario
-                    font.pixelSize: 13
-                    font.letterSpacing: 1
-                }
-                Label {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: habitacion.numero
-                    color: window.colorDorado
-                    font.pixelSize: 40
-                    font.weight: Font.Medium
-                }
-            }
-
-            // Círculo central de estado (tocable)
+            // Encabezado: marca y numero de habitacion
             Rectangle {
-                id: circuloEstado
-                width: 200
-                height: 200
-                radius: width / 2
-                color: "transparent"
-                // Verde mientras el huesped esta dentro; dorado al salir.
-                border.color: window.estoyDentro ? window.colorExito : window.colorDorado
-                border.width: 3
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 8
-
-                    Label {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: window.iconoPara(habitacion.estadoActual)
-                        color: window.colorDorado
-                        font.pixelSize: 36
-                    }
-                    Label {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: window.etiquetaPara(habitacion.estadoActual)
-                        color: window.colorTextoClaro
-                        font.pixelSize: 16
-                        font.weight: Font.Medium
-                    }
+                Layout.fillWidth: true
+                implicitHeight: 96
+                radius: Tema.radioGrande
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: Tema.barraLateral }
+                    GradientStop { position: 1.0; color: Tema.primario }
                 }
-
-                MouseArea {
+                RowLayout {
                     anchors.fill: parent
-                    onClicked: menuEstados.open()
+                    anchors.leftMargin: 22
+                    anchors.rightMargin: 22
+                    ColumnLayout {
+                        spacing: 0
+                        Layout.fillWidth: true
+                        Label {
+                            text: qsTr("Bienvenido a tu habitación")
+                            color: "#E0E7FF"
+                            font.pixelSize: 14
+                        }
+                        Label {
+                            text: qsTr("Habitación %1").arg(habitacion.numero)
+                            color: "#FFFFFF"
+                            font.pixelSize: 28
+                            font.weight: Font.Bold
+                        }
+                    }
+                    Rectangle {
+                        width: 46; height: 46; radius: 13
+                        color: Tema.dorado
+                        Label {
+                            anchors.centerIn: parent
+                            text: "N"
+                            color: Tema.barraLateral
+                            font.pixelSize: 24
+                            font.weight: Font.Black
+                        }
+                    }
                 }
             }
 
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Toca el círculo para cambiar el estado")
-                color: window.colorTextoSecundario
-                font.pixelSize: 11
+            // Estado actual (tocable)
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 250
+                radius: Tema.radioGrande
+                color: Tema.tarjeta
+                border.width: 1
+                border.color: Tema.borde
+
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: 10
+
+                    Rectangle {
+                        id: circuloEstado
+                        Layout.alignment: Qt.AlignHCenter
+                        width: 150; height: 150
+                        radius: width / 2
+                        color: window.colorSuavePara(habitacion.estadoActual)
+                        border.width: 5
+                        border.color: window.colorPara(habitacion.estadoActual)
+                        scale: areaEstado.pressed ? 0.96 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 90 } }
+                        Behavior on border.color { ColorAnimation { duration: 250 } }
+
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            spacing: 4
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: window.iconoPara(habitacion.estadoActual)
+                                font.family: Tema.fuenteIconos
+                                font.pixelSize: 40
+                            }
+                            Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: window.etiquetaPara(habitacion.estadoActual)
+                                color: window.colorPara(habitacion.estadoActual)
+                                font.pixelSize: 17
+                                font.weight: Font.Bold
+                            }
+                        }
+
+                        MouseArea {
+                            id: areaEstado
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: menuEstados.open()
+                        }
+                    }
+
+                    Label {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: qsTr("👆 Toca el círculo para cambiar el estado")
+                        color: Tema.textoSecundario
+                        font.pixelSize: 13
+                    }
+                }
             }
 
             // Mensaje de error (p. ej. si falla el guardado en la BD)
-            Label {
-                id: mensajeError
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 280
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-                color: "#e05c5c"
-                font.pixelSize: 11
-                visible: false
+            Rectangle {
+                visible: mensajeError.visible
+                Layout.fillWidth: true
+                implicitHeight: mensajeError.implicitHeight + 20
+                radius: Tema.radio
+                color: Tema.errorSuave
+                Label {
+                    id: mensajeError
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: 12
+                    width: parent.width - 24
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    color: Tema.error
+                    font.pixelSize: 13
+                    visible: false
+                }
             }
 
-            // Barra inferior (Theme 5, Task 1): presencia y solicitudes.
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 16
-                topPadding: 6
+            Label {
+                text: qsTr("¿Qué necesitas?")
+                color: Tema.texto
+                font.pixelSize: 17
+                font.weight: Font.DemiBold
+            }
 
-                // Alterna entre "dentro" y "fuera". El icono y la
-                // etiqueta muestran el estado ACTUAL del huesped.
+            // Presencia y solicitudes (Theme 5, Task 1)
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                // Alterna entre "dentro" y "fuera". Muestra el estado ACTUAL.
                 BotonAccion {
-                    icono: window.estoyDentro ? "⌂" : "➜"
-                    etiqueta: window.estoyDentro ? qsTr("Dentro") : qsTr("Fuera")
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    icono: window.estoyDentro ? "🏠" : "🚶"
+                    etiqueta: window.estoyDentro ? qsTr("Estoy dentro") : qsTr("Salí")
+                    detalle: qsTr("Toca para cambiar")
                     resaltado: window.estoyDentro
+                    tono: Tema.exito
+                    tonoSuave: Tema.exitoSuave
                     onTocado: {
-                        // Si falla, SolicitudesHuesped emite
-                        // operacionRechazada y se muestra el error.
                         const nuevo = window.estoyDentro ? "fuera" : "dentro"
                         if (solicitudes.cambiarPresencia(nuevo)) {
                             window.mostrarAviso(nuevo === "dentro"
-                                                ? qsTr("Marcado como dentro de la habitación")
-                                                : qsTr("Marcado como fuera de la habitación"))
+                                                ? qsTr("Listo: estás dentro de la habitación")
+                                                : qsTr("Listo: saliste de la habitación"))
                         }
                     }
                 }
 
-                // Las solicitudes piden confirmacion antes de enviarse,
-                // para evitar envios por un toque accidental.
+                // Las solicitudes piden confirmacion antes de enviarse.
                 BotonAccion {
-                    icono: "✨"
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    icono: "🧹"
                     etiqueta: qsTr("Limpieza")
+                    detalle: qsTr("Pedir limpieza")
+                    tono: Tema.aviso
+                    tonoSuave: Tema.avisoSuave
                     onTocado: {
                         window.solicitudPendiente = "limpieza"
                         confirmarSolicitud.open()
                     }
                 }
                 BotonAccion {
-                    icono: "⚒"
-                    etiqueta: qsTr("Mant.")
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    icono: "🔧"
+                    etiqueta: qsTr("Mantenimiento")
+                    detalle: qsTr("Algo no funciona")
+                    tono: Tema.neutro
+                    tonoSuave: Tema.neutroSuave
                     onTocado: {
                         window.solicitudPendiente = "mantenimiento"
                         confirmarSolicitud.open()
@@ -278,37 +376,59 @@ ApplicationWindow {
                 }
             }
 
-            // Aviso breve de confirmacion. Ocupa siempre su espacio
-            // (solo cambia la opacidad) para que el resto de la
-            // pantalla no salte cuando aparece o desaparece.
+            // Aviso breve de confirmacion. Ocupa siempre su espacio para
+            // que la pantalla no salte cuando aparece o desaparece.
             Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 300
-                height: 32
+                Layout.fillWidth: true
+                implicitHeight: 48
 
                 Rectangle {
                     id: avisoEnviado
-                    anchors.centerIn: parent
-                    width: Math.min(textoAviso.implicitWidth + 28, 300)
-                    height: 30
-                    radius: 15
-                    color: window.colorTarjeta
+                    anchors.fill: parent
+                    radius: Tema.radio
+                    color: Tema.exitoSuave
                     border.width: 1
-                    border.color: window.colorBorde
+                    border.color: Tema.exito
                     opacity: 0
                     Behavior on opacity { NumberAnimation { duration: 200 } }
 
                     Label {
                         id: textoAviso
                         anchors.centerIn: parent
-                        width: parent.width - 20
+                        width: parent.width - 24
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
-                        color: window.colorExito
-                        font.pixelSize: 11
+                        color: "#166534"
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
                     }
                 }
             }
+        }
+    }
+
+    // Boton de los popups.
+    component BotonPopup: Rectangle {
+        id: bp
+        property alias texto: etBp.text
+        property bool principal: false
+        signal pulsado()
+        implicitHeight: Tema.alturaBoton
+        radius: Tema.radio
+        color: principal ? Tema.primario : "transparent"
+        border.width: principal ? 0 : 1
+        border.color: Tema.bordeFuerte
+        Label {
+            id: etBp
+            anchors.centerIn: parent
+            color: bp.principal ? Tema.textoSobrePrimario : Tema.texto
+            font.pixelSize: 15
+            font.weight: Font.DemiBold
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: bp.pulsado()
         }
     }
 
@@ -318,80 +438,65 @@ ApplicationWindow {
         modal: true
         focus: true
         anchors.centerIn: Overlay.overlay
-        width: 280
-        padding: 16
+        width: Math.min(window.width - 40, 340)
+        padding: 22
 
         background: Rectangle {
-            color: window.colorTarjeta
-            radius: 12
-            border.color: window.colorBorde
-            border.width: 1
+            color: Tema.tarjeta
+            radius: Tema.radioGrande
         }
 
-        contentItem: Column {
-            spacing: 14
+        contentItem: ColumnLayout {
+            spacing: 16
 
             Label {
-                width: parent.width
+                Layout.alignment: Qt.AlignHCenter
+                text: window.solicitudPendiente === "limpieza" ? "🧹" : "🔧"
+                font.family: Tema.fuenteIconos
+                font.pixelSize: 36
+            }
+            Label {
+                Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                color: window.colorTextoClaro
-                font.pixelSize: 15
-                font.weight: Font.Medium
+                color: Tema.texto
+                font.pixelSize: 17
+                font.weight: Font.DemiBold
                 text: window.solicitudPendiente === "limpieza"
                       ? qsTr("¿Pedir limpieza para tu habitación?")
                       : qsTr("¿Pedir mantenimiento para tu habitación?")
             }
+            Label {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                color: Tema.textoSecundario
+                font.pixelSize: 13
+                text: qsTr("El personal del hotel recibirá tu solicitud al momento.")
+            }
 
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
+            RowLayout {
+                Layout.fillWidth: true
                 spacing: 10
 
-                Rectangle {
-                    width: 116
-                    height: 40
-                    radius: 8
-                    color: "transparent"
-                    border.width: 1
-                    border.color: "#444444"
-                    Label {
-                        anchors.centerIn: parent
-                        text: qsTr("Cancelar")
-                        color: window.colorTextoClaro
-                        font.pixelSize: 13
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: confirmarSolicitud.close()
-                    }
+                BotonPopup {
+                    Layout.fillWidth: true
+                    texto: qsTr("Cancelar")
+                    onPulsado: confirmarSolicitud.close()
                 }
-
-                Rectangle {
-                    width: 116
-                    height: 40
-                    radius: 8
-                    color: window.colorDorado
-                    Label {
-                        anchors.centerIn: parent
-                        text: qsTr("Pedir")
-                        color: "#1a1400"
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            // Guarda la Solicitud_Servicio en la BD. Avisar
-                            // al personal es el Task 3. Si se rechaza
-                            // (sin estadia activa, duplicada...), el
-                            // motivo sale por operacionRechazada.
-                            const tipo = window.solicitudPendiente
-                            confirmarSolicitud.close()
-                            if (solicitudes.crearSolicitud(tipo)) {
-                                window.mostrarAviso(tipo === "limpieza"
-                                                    ? qsTr("Solicitud de limpieza enviada")
-                                                    : qsTr("Solicitud de mantenimiento enviada"))
-                            }
+                BotonPopup {
+                    Layout.fillWidth: true
+                    principal: true
+                    texto: qsTr("Sí, pedir")
+                    onPulsado: {
+                        // Guarda la Solicitud_Servicio en la BD. Si se
+                        // rechaza, el motivo sale por operacionRechazada.
+                        const tipo = window.solicitudPendiente
+                        confirmarSolicitud.close()
+                        if (solicitudes.crearSolicitud(tipo)) {
+                            window.mostrarAviso(tipo === "limpieza"
+                                                ? qsTr("✓ Solicitud de limpieza enviada")
+                                                : qsTr("✓ Solicitud de mantenimiento enviada"))
                         }
                     }
                 }
@@ -405,43 +510,71 @@ ApplicationWindow {
         modal: true
         focus: true
         anchors.centerIn: Overlay.overlay
-        width: 260
-        padding: 8
+        width: Math.min(window.width - 40, 320)
+        padding: 14
 
         background: Rectangle {
-            color: window.colorTarjeta
-            radius: 12
-            border.color: window.colorBorde
-            border.width: 1
+            color: Tema.tarjeta
+            radius: Tema.radioGrande
         }
 
-        contentItem: Column {
-            spacing: 2
+        contentItem: ColumnLayout {
+            spacing: 6
+
+            Label {
+                text: qsTr("Cambiar estado")
+                color: Tema.texto
+                font.pixelSize: 17
+                font.weight: Font.Bold
+                Layout.bottomMargin: 6
+                Layout.leftMargin: 4
+            }
 
             Repeater {
                 model: habitacion.estadosDisponibles
 
                 delegate: Rectangle {
+                    id: opcion
                     required property string modelData
-                    width: menuEstados.width - 16
-                    height: 46
-                    radius: 8
-                    color: modelData === habitacion.estadoActual ? window.colorDorado : "transparent"
+                    readonly property bool actual: modelData === habitacion.estadoActual
+                    Layout.fillWidth: true
+                    implicitHeight: 52
+                    radius: Tema.radio
+                    color: actual ? window.colorSuavePara(modelData) : "transparent"
+                    border.width: actual ? 2 : 1
+                    border.color: actual ? window.colorPara(modelData) : Tema.borde
 
-                    Label {
-                        anchors.left: parent.left
+                    RowLayout {
+                        anchors.fill: parent
                         anchors.leftMargin: 14
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: window.etiquetaPara(modelData)
-                        color: modelData === habitacion.estadoActual ? "#1a1400" : window.colorTextoClaro
-                        font.pixelSize: 14
-                        font.weight: modelData === habitacion.estadoActual ? Font.Medium : Font.Normal
+                        anchors.rightMargin: 14
+                        spacing: 12
+                        Label {
+                            text: window.iconoPara(opcion.modelData)
+                            font.family: Tema.fuenteIconos
+                            font.pixelSize: 20
+                        }
+                        Label {
+                            text: window.etiquetaPara(opcion.modelData)
+                            color: Tema.texto
+                            font.pixelSize: 15
+                            font.weight: opcion.actual ? Font.DemiBold : Font.Normal
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            visible: opcion.actual
+                            text: "✓"
+                            color: window.colorPara(opcion.modelData)
+                            font.pixelSize: 18
+                            font.weight: Font.Bold
+                        }
                     }
 
                     MouseArea {
                         anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            habitacion.cambiarEstado(modelData)
+                            habitacion.cambiarEstado(opcion.modelData)
                             menuEstados.close()
                         }
                     }

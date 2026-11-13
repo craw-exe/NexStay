@@ -4,78 +4,88 @@ import QtQuick.Layouts
 import NexStay
 
 // Theme 7, Task 2: control de vistas/funciones por rol.
+// Rediseño de interfaz (revisión 11/nov): tablero con mosaicos grandes,
+// barra lateral en pantallas anchas (PC de recepción) y barra superior
+// sencilla en pantallas angostas (celular).
 //
 // Esta es la ventana de la app del PERSONAL (el kiosco de la
 // habitacion, Main.qml, es otra aplicacion que se abre con --kiosko).
-// Todo ocurre dentro de esta misma ventana:
 //
 //   - Sin sesion: se muestra PantallaLogin.
-//   - Con sesion: se muestra un menu con SOLO las vistas que el rol
-//     tiene permitidas, y cada vista se abre dentro de esta ventana
-//     (con boton de regreso), no en ventanas aparte.
+//   - Con sesion: se muestran SOLO las vistas que el rol tiene
+//     permitidas, y cada vista se abre dentro de esta ventana.
 //
 // Que puede ver cada rol NO esta escrito aqui: sale de la tabla
-// Permisos (matriz definida en Theme 7, Task 1) a traves de
-// ControlAcceso.tienePermiso(modulo, accion). Para cambiar lo que ve
-// un rol basta con cambiar sus permisos en la BD, sin tocar este archivo.
+// Permisos a traves de ControlAcceso.tienePermiso(modulo, accion).
 //
-// Defensa en profundidad (mismo criterio que en el resto del
-// proyecto): ocultar una entrada del menu NO es la unica proteccion.
-// abrir() vuelve a revisar el permiso antes de mostrar la vista, y
-// las propias vistas validan en C++ lo que hacen (AlertasPersonal,
-// BitacoraAcceso).
+// Defensa en profundidad: ocultar una entrada del menu NO es la unica
+// proteccion. abrir() vuelve a revisar el permiso antes de mostrar la
+// vista, y las propias vistas validan en C++ lo que hacen.
 ApplicationWindow {
     id: window
-    width: 480
+    width: 1100
     height: 720
     minimumWidth: 320
     minimumHeight: 480
     visible: true
     title: qsTr("NexStay")
+    font.family: "Segoe UI"
 
-    property color colorFondo: "#0d0d0d"
-    property color colorBarra: "#111111"
-    property color colorTarjeta: "#1a1a1a"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorError: "#e05c5c"
-    property color colorExito: "#6fcf97"
+    // Se dejan con los nombres de antes para no romper nada que los lea.
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
+    property color colorError: Tema.error
+    property color colorExito: Tema.exito
 
-    // Titulo de la vista abierta ("" = estamos en el menu).
+    // Barra lateral solo en pantallas anchas.
+    readonly property bool pantallaAncha: width >= 860
+
+    // Titulo y clave de la vista abierta ("" = estamos en el inicio).
     property string vistaActual: ""
+    property string claveActual: ""
     property string textoBanner: ""
 
     // Catalogo de vistas. "modulo" y "accion" son el permiso que pide
-    // cada una; "mensaje" solo lo usan las que aun son marcador de lugar.
+    // cada una; "icono" y "tono" solo son de presentacion.
     readonly property var vistas: [
+        // Theme 11: "Nueva reserva" va primero porque es lo que mas se usa.
+        { clave: "huespedes", titulo: qsTr("Nueva reserva"),
+          descripcion: qsTr("Busca o registra al huésped y apártale habitación"),
+          icono: "🧳", tono: Tema.neutro, tonoSuave: Tema.neutroSuave,
+          modulo: "huespedes", accion: "crear" },
         { clave: "solicitudes", titulo: qsTr("Solicitudes"),
-          descripcion: qsTr("Pendientes, en proceso e historial"),
+          descripcion: qsTr("Limpieza y mantenimiento que piden los huéspedes"),
+          icono: "🛎️", tono: Tema.aviso, tonoSuave: Tema.avisoSuave,
           modulo: "solicitudes", accion: "ver" },
-        { clave: "reservas", titulo: qsTr("Calendario de reservas"),
-          descripcion: qsTr("Ocupación por habitación y día"),
+        { clave: "reservas", titulo: qsTr("Calendario"),
+          descripcion: qsTr("Calendario: qué habitación está ocupada cada día"),
+          icono: "📅", tono: Tema.primario, tonoSuave: Tema.primarioSuave,
           modulo: "reservas", accion: "ver" },
         { clave: "habitaciones", titulo: qsTr("Habitaciones"),
-          descripcion: qsTr("Estado de cada habitación y huésped actual"),
+          descripcion: qsTr("Estado de cada habitación y quién está hospedado"),
+          icono: "🛏️", tono: Tema.exito, tonoSuave: Tema.exitoSuave,
           modulo: "habitaciones", accion: "ver" },
-        { clave: "huespedes", titulo: qsTr("Registrar huésped"),
-          descripcion: qsTr("Alta de un nuevo huésped"),
-          modulo: "huespedes", accion: "crear" },
         { clave: "bitacora", titulo: qsTr("Bitácora de accesos"),
-          descripcion: qsTr("Quién entró a cada habitación y cuándo"),
+          descripcion: qsTr("Quién entró a cada habitación y a qué hora"),
+          icono: "🔑", tono: Tema.morado, tonoSuave: Tema.moradoSuave,
           modulo: "bitacora", accion: "ver" },
         { clave: "reportes", titulo: qsTr("Reportes"),
-          descripcion: qsTr("Ocupación, limpieza y solicitudes"),
+          descripcion: qsTr("Ocupación, limpieza y solicitudes en números"),
+          icono: "📊", tono: Tema.rosa, tonoSuave: Tema.rosaSuave,
           modulo: "reportes", accion: "ver" },
         { clave: "usuarios", titulo: qsTr("Usuarios y roles"),
-          descripcion: qsTr("Cuentas y permisos"),
+          descripcion: qsTr("Cuentas del personal y sus permisos"),
+          icono: "👥", tono: Tema.textoSecundario, tonoSuave: Tema.suave,
           modulo: "usuarios", accion: "ver" }
     ]
 
     // Solo las vistas que el rol de la sesion actual puede abrir. Leer
     // Sesion.idUsuario hace que esto se recalcule al cambiar de sesion.
-    // revisionPermisos sube cada vez que se regresa al menu, para que
+    // revisionPermisos sube cada vez que se regresa al inicio, para que
     // los cambios hechos en la pantalla de administracion se reflejen.
     property int revisionPermisos: 0
     property var vistasPermitidas: {
@@ -91,18 +101,42 @@ ApplicationWindow {
         id: control
     }
 
+    // --- Utilidades de texto ---
+    function saludo() {
+        const hora = new Date().getHours()
+        if (hora < 12) return qsTr("Buenos días")
+        if (hora < 19) return qsTr("Buenas tardes")
+        return qsTr("Buenas noches")
+    }
+    function fechaHoy() {
+        const texto = Qt.locale("es_MX").toString(new Date(), "dddd d 'de' MMMM 'de' yyyy")
+        return texto.charAt(0).toUpperCase() + texto.slice(1)
+    }
+    function iniciales(nombre) {
+        const partes = nombre.trim().split(/\s+/)
+        if (partes.length === 0 || partes[0] === "") return "?"
+        return (partes[0].charAt(0) + (partes.length > 1 ? partes[1].charAt(0) : "")).toUpperCase()
+    }
+
     // --- Navegacion ---
     function abrir(vista) {
         // Se revisa de nuevo el permiso aunque la entrada ya estuviera
         // filtrada en el menu.
         if (!control.tienePermiso(vista.modulo, vista.accion)) {
-            textoBanner = qsTr("Tu rol no tiene permiso para abrir esta vista.")
-            banner.visible = true
-            temporizadorBanner.restart()
+            mostrarBanner(qsTr("Tu rol no tiene permiso para abrir esta vista."))
             return
+        }
+        if (window.claveActual === vista.clave) {
+            return
+        }
+        // Desde la barra lateral se puede saltar de una vista a otra:
+        // primero se regresa al inicio y luego se abre la nueva.
+        if (pila.depth > 1) {
+            pila.pop(null, StackView.Immediate)
         }
 
         window.vistaActual = vista.titulo
+        window.claveActual = vista.clave
         switch (vista.clave) {
         case "solicitudes": pila.push(compSolicitudes); break
         case "reservas":    pila.push(compReservas); break
@@ -111,16 +145,13 @@ ApplicationWindow {
         case "usuarios":    pila.push(compAdministracion); break
         case "reportes":    pila.push(compReportes); break
         case "habitaciones": pila.push(compHabitaciones); break
-        default:            pila.push(compMarcador, { texto: vista.mensaje })
         }
     }
 
     function abrirPorClave(clave) {
         for (let i = 0; i < vistasPermitidas.length; i++) {
             if (vistasPermitidas[i].clave === clave) {
-                if (window.vistaActual !== vistasPermitidas[i].titulo) {
-                    abrir(vistasPermitidas[i])
-                }
+                abrir(vistasPermitidas[i])
                 return
             }
         }
@@ -128,51 +159,55 @@ ApplicationWindow {
 
     function volver() {
         if (pila.depth > 1) {
-            pila.pop()
-            window.vistaActual = ""
-            window.revisionPermisos++
+            pila.pop(null)
         }
+        window.vistaActual = ""
+        window.claveActual = ""
+        window.revisionPermisos++
     }
 
-    // Theme 10: al abrir la app siempre se pide login (ya no se entra
-    // solo con el ultimo usuario).
+    function cerrarSesion() {
+        Sesion.cerrarSesion()
+        login.limpiarFormulario()
+    }
+
+    function mostrarBanner(texto) {
+        window.textoBanner = texto
+        banner.visible = true
+        temporizadorBanner.restart()
+    }
+
+    // Theme 10: al abrir la app siempre se pide login.
     Component.onCompleted: Sesion.restaurarSesionGuardada()
 
-    // Theme 10: cierre de sesion tras 15 minutos sin mover el mouse ni
-    // cambiar de pantalla, para que nadie use la cuenta de otro en recepcion.
-    // shortcut: solo cuenta el movimiento del mouse; sumar teclado/toques
-    // si se usa en pantallas tactiles.
+    // Theme 10: cierre de sesion tras 15 minutos sin actividad.
+    // shortcut: solo cuenta el movimiento del mouse y el cambio de vista.
     Timer {
         id: inactividad
         interval: 15 * 60 * 1000
         running: Sesion.haySesion
-        onTriggered: {
-            Sesion.cerrarSesion()
-            login.limpiarFormulario()
-        }
+        onTriggered: window.cerrarSesion()
     }
     onVistaActualChanged: inactividad.restart()
 
-    // Si la sesion se cierra, se regresa al menu (y se muestra el login).
+    // Si la sesion se cierra, se regresa al inicio (y se muestra el login).
     Connections {
         target: Sesion
         function onSesionCambio() {
             if (!Sesion.haySesion) {
                 pila.pop(null)
                 window.vistaActual = ""
+                window.claveActual = ""
             }
         }
     }
 
-    // Alerta global de solicitudes nuevas (Theme 5, Task 3): solo le
-    // llega a quien tenga permiso para ver solicitudes, y solo de su tipo.
+    // Alerta global de solicitudes nuevas (Theme 5, Task 3).
     AlertasPersonal {
         id: alertas
         onNuevaSolicitud: function(idSolicitud, tipo, numeroHabitacion, prioridad) {
-            window.textoBanner = qsTr("Nueva solicitud de %1 · Hab. %2")
-                                    .arg(tipo).arg(numeroHabitacion)
-            banner.visible = true
-            temporizadorBanner.restart()
+            window.mostrarBanner(qsTr("Nueva solicitud de %1 en la habitación %2. Toca aquí para verla.")
+                                 .arg(tipo).arg(numeroHabitacion))
         }
     }
 
@@ -187,262 +222,545 @@ ApplicationWindow {
         id: boton
         property alias texto: etiqueta.text
         property bool principal: false
+        property color colorTexto: principal ? Tema.textoSobrePrimario : Tema.texto
         signal pulsado()
 
-        implicitHeight: 42
-        radius: 8
-        color: principal ? "#D4AF37" : "transparent"
+        implicitHeight: Tema.alturaBoton
+        implicitWidth: etiqueta.implicitWidth + 32
+        radius: Tema.radio
+        color: principal ? (areaBoton.containsMouse ? Tema.primarioOscuro : Tema.primario)
+                         : (areaBoton.containsMouse ? Tema.suave : "transparent")
         border.width: principal ? 0 : 1
-        border.color: "#444444"
+        border.color: Tema.bordeFuerte
 
         Label {
             id: etiqueta
             anchors.centerIn: parent
-            color: boton.principal ? "#1a1400" : "#f2f2f2"
-            font.pixelSize: 13
-            font.weight: boton.principal ? Font.Medium : Font.Normal
+            color: boton.colorTexto
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
         }
         MouseArea {
+            id: areaBoton
             anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: boton.pulsado()
+        }
+    }
+
+    // Circulo con el icono de una vista.
+    component IconoVista: Rectangle {
+        property string icono
+        property color tono: Tema.primario
+        property int tamano: 52
+        width: tamano
+        height: tamano
+        radius: tamano / 2.6
+        color: tono
+        Label {
+            anchors.centerIn: parent
+            text: parent.icono
+            font.family: Tema.fuenteIconos
+            font.pixelSize: parent.tamano * 0.46
         }
     }
 
     // --- Vistas dentro de la misma ventana ---
     Component { id: compSolicitudes; PantallaSolicitudes {} }
-    Component { id: compReservas;    PantallaCalendarioReservas {} }
-    Component { id: compHuespedes;   RegistroHuesped {} }
+    // Theme 11: la nueva reserva y el calendario se abren uno desde el otro.
+    // Qt.callLater: la vista que avisa se destruye al cambiar de vista.
+    Component {
+        id: compReservas
+        PantallaCalendarioReservas {
+            onNuevaReserva: Qt.callLater(window.abrirPorClave, "huespedes")
+        }
+    }
+    Component {
+        id: compHuespedes
+        RegistroHuesped {
+            onAbrirCalendario: Qt.callLater(window.abrirPorClave, "reservas")
+        }
+    }
     Component { id: compBitacora;    PantallaBitacoraAcceso {} }
     Component { id: compAdministracion; PantallaAdministracion {} }
     Component { id: compReportes;    PantallaReportes {} }
     Component { id: compHabitaciones; PantallaHabitaciones {} }
-    Component {
-        id: compMarcador
-        Item {
-            property string texto: ""
-            Label {
-                anchors.centerIn: parent
-                width: Math.min(parent.width - 48, 360)
-                text: parent.texto
-                color: window.colorTextoSecundario
-                font.pixelSize: 13
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-            }
-        }
-    }
 
-    // Menu: una tarjeta por cada vista permitida.
+    // Inicio: saludo y un mosaico grande por cada vista permitida.
     Component {
         id: menuInicio
 
-        ListView {
-            id: lista
+        Flickable {
+            id: inicio
             clip: true
-            spacing: 10
-            leftMargin: Math.max(18, (width - 560) / 2)
-            rightMargin: leftMargin
-            topMargin: 18
-            bottomMargin: 18
+            contentHeight: columnaInicio.implicitHeight + 48
             boundsBehavior: Flickable.StopAtBounds
-            model: window.vistasPermitidas
 
-            header: Item {
-                width: lista.width - lista.leftMargin - lista.rightMargin
-                height: saludo.implicitHeight + 16
+            readonly property int margen: window.pantallaAncha ? 32 : 16
+            readonly property int columnas: Math.max(1, Math.floor((width - 2 * margen) / 270))
 
-                ColumnLayout {
-                    id: saludo
-                    width: parent.width
-                    spacing: 2
+            ColumnLayout {
+                id: columnaInicio
+                x: inicio.margen
+                y: inicio.margen
+                width: inicio.width - 2 * inicio.margen
+                spacing: 22
 
-                    Label {
-                        text: qsTr("Hola, %1").arg(Sesion.nombreCompleto)
-                        color: window.colorDorado
-                        font.pixelSize: 18
-                        font.weight: Font.Medium
+                // Tarjeta de bienvenida
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: bienvenida.implicitHeight + 44
+                    radius: Tema.radioGrande
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: Tema.barraLateral }
+                        GradientStop { position: 1.0; color: Tema.primario }
                     }
-                    Label {
-                        text: window.vistasPermitidas.length > 0
-                              ? qsTr("Elige una vista")
-                              : qsTr("Tu rol todavía no tiene vistas asignadas. Pide a un administrador que revise tus permisos.")
-                        color: window.colorTextoSecundario
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
+
+                    ColumnLayout {
+                        id: bienvenida
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 24
+                        anchors.rightMargin: 24
+                        spacing: 4
+
+                        Label {
+                            text: window.fechaHoy()
+                            color: "#C7D7FE"
+                            font.pixelSize: 13
+                        }
+                        Label {
+                            text: qsTr("%1, %2").arg(window.saludo()).arg(Sesion.nombreCompleto)
+                            color: "#FFFFFF"
+                            font.pixelSize: window.pantallaAncha ? 26 : 21
+                            font.weight: Font.Bold
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: window.vistasPermitidas.length > 0
+                                  ? qsTr("¿Qué quieres hacer hoy? Elige una opción.")
+                                  : qsTr("Tu rol todavía no tiene opciones asignadas. Pide a un administrador que revise tus permisos.")
+                            color: "#E0E7FF"
+                            font.pixelSize: 14
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+
+                Label {
+                    visible: window.vistasPermitidas.length > 0
+                    text: qsTr("Accesos rápidos")
+                    color: Tema.texto
+                    font.pixelSize: 17
+                    font.weight: Font.DemiBold
+                }
+
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: inicio.columnas
+                    columnSpacing: 16
+                    rowSpacing: 16
+
+                    Repeater {
+                        model: window.vistasPermitidas
+
+                        delegate: Rectangle {
+                            id: mosaico
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 150
+                            radius: Tema.radioGrande
+                            color: Tema.tarjeta
+                            border.width: areaMosaico.containsMouse ? 2 : 1
+                            border.color: areaMosaico.containsMouse ? modelData.tono : Tema.borde
+                            scale: areaMosaico.pressed ? 0.98 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 90 } }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 18
+                                spacing: 6
+
+                                IconoVista {
+                                    icono: mosaico.modelData.icono
+                                    tono: mosaico.modelData.tonoSuave
+                                    tamano: 48
+                                }
+                                Item { Layout.fillHeight: true }
+                                Label {
+                                    text: mosaico.modelData.titulo
+                                    color: Tema.texto
+                                    font.pixelSize: 16
+                                    font.weight: Font.DemiBold
+                                }
+                                Label {
+                                    text: mosaico.modelData.descripcion
+                                    color: Tema.textoSecundario
+                                    font.pixelSize: 13
+                                    wrapMode: Text.WordWrap
+                                    maximumLineCount: 2
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            Label {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 18
+                                text: "→"
+                                color: mosaico.modelData.tono
+                                font.pixelSize: 20
+                                opacity: areaMosaico.containsMouse ? 1 : 0.35
+                            }
+
+                            MouseArea {
+                                id: areaMosaico
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: window.abrir(mosaico.modelData)
+                            }
+                        }
                     }
                 }
             }
 
-            delegate: Rectangle {
-                required property var modelData
-                width: lista.width - lista.leftMargin - lista.rightMargin
-                height: 64
-                radius: 10
-                color: window.colorTarjeta
+            ScrollBar.vertical: ScrollBar {}
+        }
+    }
+
+    // --- Estructura de la ventana ---
+    Rectangle {
+        anchors.fill: parent
+        color: Tema.fondo
+    }
+
+    // Login a pantalla completa mientras no hay sesion.
+    PantallaLogin {
+        id: login
+        anchors.fill: parent
+        visible: !Sesion.haySesion
+    }
+
+    RowLayout {
+        anchors.fill: parent
+        spacing: 0
+        visible: Sesion.haySesion
+
+        // Barra lateral (solo pantallas anchas)
+        Rectangle {
+            visible: window.pantallaAncha
+            z: 2
+            Layout.fillHeight: true
+            Layout.preferredWidth: 250
+            color: Tema.barraLateral
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 4
+
+                // Logo
+                RowLayout {
+                    Layout.bottomMargin: 20
+                    Layout.topMargin: 6
+                    spacing: 10
+                    Rectangle {
+                        width: 38; height: 38; radius: 10
+                        color: Tema.dorado
+                        Label {
+                            anchors.centerIn: parent
+                            text: "N"
+                            color: Tema.barraLateral
+                            font.pixelSize: 20
+                            font.weight: Font.Black
+                        }
+                    }
+                    ColumnLayout {
+                        spacing: 0
+                        Label {
+                            text: "NexStay"
+                            color: "#FFFFFF"
+                            font.pixelSize: 19
+                            font.weight: Font.Bold
+                        }
+                        Label {
+                            text: qsTr("Gestión hotelera")
+                            color: "#93A4C3"
+                            font.pixelSize: 12
+                        }
+                    }
+                }
+
+                // Entrada fija: Inicio + una por cada vista permitida
+                Repeater {
+                    model: [{ clave: "", titulo: qsTr("Inicio"), icono: "🏠" }].concat(window.vistasPermitidas)
+
+                    delegate: Rectangle {
+                        id: entrada
+                        required property var modelData
+                        readonly property bool activa: window.claveActual === modelData.clave
+                        Layout.fillWidth: true
+                        implicitHeight: 46
+                        radius: 10
+                        color: activa ? Tema.primario
+                                      : (areaEntrada.containsMouse ? "#1F3A66" : "transparent")
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 12
+                            Label {
+                                text: entrada.modelData.icono
+                                font.family: Tema.fuenteIconos
+                                font.pixelSize: 18
+                            }
+                            Label {
+                                text: entrada.modelData.titulo
+                                color: entrada.activa ? "#FFFFFF" : "#D5DEEE"
+                                font.pixelSize: 14
+                                font.weight: entrada.activa ? Font.DemiBold : Font.Normal
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+                        MouseArea {
+                            id: areaEntrada
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (entrada.modelData.clave === "") {
+                                    window.volver()
+                                } else {
+                                    window.abrir(entrada.modelData)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+
+                // Usuario y salir
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 64
+                    radius: 12
+                    color: "#1B355F"
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+                        Rectangle {
+                            width: 40; height: 40; radius: 20
+                            color: Tema.dorado
+                            Label {
+                                anchors.centerIn: parent
+                                text: window.iniciales(Sesion.nombreCompleto)
+                                color: Tema.barraLateral
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
+                            }
+                        }
+                        ColumnLayout {
+                            spacing: 0
+                            Layout.fillWidth: true
+                            Label {
+                                text: Sesion.nombreCompleto
+                                color: "#FFFFFF"
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                            Label {
+                                text: Sesion.nombreRol
+                                color: "#93A4C3"
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
+                BotonTexto {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 6
+                    texto: qsTr("Cerrar sesión")
+                    colorTexto: "#FFFFFF"
+                    border.color: "#3B5A8C"
+                    color: areaSalirHover.hovered ? "#1F3A66" : "transparent"
+                    onPulsado: window.cerrarSesion()
+                    HoverHandler { id: areaSalirHover }
+                }
+            }
+        }
+
+        // Columna principal
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
+
+            // Barra superior: regreso, titulo, fecha/usuario y salir
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: window.pantallaAncha ? 68 : 58
+                color: Tema.tarjeta
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: 1
+                    color: Tema.borde
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: window.pantallaAncha ? 28 : 12
+                    anchors.rightMargin: window.pantallaAncha ? 28 : 12
+                    spacing: 10
+
+                    // Regresar (en celular es la unica forma de volver al inicio)
+                    BotonTexto {
+                        visible: pila.depth > 1
+                        implicitHeight: 38
+                        texto: window.pantallaAncha ? qsTr("← Inicio") : "←"
+                        onPulsado: window.volver()
+                    }
+
+                    // Logo pequeño en celular cuando se esta en el inicio
+                    Rectangle {
+                        visible: !window.pantallaAncha && pila.depth <= 1
+                        width: 32; height: 32; radius: 9
+                        color: Tema.dorado
+                        Label {
+                            anchors.centerIn: parent
+                            text: "N"
+                            color: Tema.barraLateral
+                            font.pixelSize: 17
+                            font.weight: Font.Black
+                        }
+                    }
+
+                    ColumnLayout {
+                        spacing: 0
+                        Layout.fillWidth: true
+                        Label {
+                            text: window.vistaActual.length > 0 ? window.vistaActual : qsTr("Inicio")
+                            color: Tema.texto
+                            font.pixelSize: window.pantallaAncha ? 21 : 18
+                            font.weight: Font.Bold
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            visible: window.pantallaAncha
+                            text: window.fechaHoy()
+                            color: Tema.textoSecundario
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    // En celular el usuario y "Salir" van aqui arriba
+                    Rectangle {
+                        visible: !window.pantallaAncha
+                        width: 34; height: 34; radius: 17
+                        color: Tema.primarioSuave
+                        Label {
+                            anchors.centerIn: parent
+                            text: window.iniciales(Sesion.nombreCompleto)
+                            color: Tema.primario
+                            font.pixelSize: 12
+                            font.weight: Font.Bold
+                        }
+                    }
+                    BotonTexto {
+                        visible: !window.pantallaAncha
+                        implicitHeight: 38
+                        texto: qsTr("Salir")
+                        onPulsado: window.cerrarSesion()
+                    }
+                }
+            }
+
+            // Aviso de solicitud nueva (toca para abrir Solicitudes)
+            Rectangle {
+                id: banner
+                visible: false
+                Layout.fillWidth: true
+                Layout.margins: 12
+                implicitHeight: 48
+                radius: Tema.radio
+                color: Tema.avisoSuave
                 border.width: 1
-                border.color: window.colorBorde
+                border.color: Tema.aviso
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 14
                     anchors.rightMargin: 14
-                    spacing: 8
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        Label {
-                            text: modelData.titulo
-                            color: window.colorTextoClaro
-                            font.pixelSize: 14
-                            font.weight: Font.Medium
-                        }
-                        Label {
-                            text: modelData.descripcion
-                            color: window.colorTextoSecundario
-                            font.pixelSize: 11
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
+                    spacing: 10
+                    Label {
+                        text: "🔔"
+                        font.family: Tema.fuenteIconos
+                        font.pixelSize: 18
                     }
                     Label {
-                        text: "›"
-                        color: window.colorDorado
-                        font.pixelSize: 22
+                        text: window.textoBanner
+                        color: "#92400E"
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        text: "✕"
+                        color: "#92400E"
+                        font.pixelSize: 14
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -8
+                            onClicked: banner.visible = false
+                        }
                     }
                 }
-
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: window.abrir(modelData)
-                }
-            }
-        }
-    }
-
-    // --- Estructura de la ventana ---
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 0
-
-        // Barra superior: regreso, titulo y datos de la sesion.
-        Rectangle {
-            visible: Sesion.haySesion
-            Layout.fillWidth: true
-            implicitHeight: 52
-            color: window.colorBarra
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 12
-                anchors.rightMargin: 12
-                spacing: 10
-
-                Label {
-                    visible: pila.depth > 1
-                    text: "‹"
-                    color: window.colorDorado
-                    font.pixelSize: 28
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -10
-                        onClicked: window.volver()
-                    }
-                }
-
-                Label {
-                    text: window.vistaActual.length > 0 ? window.vistaActual : qsTr("NexStay")
-                    color: window.colorDorado
-                    font.pixelSize: 16
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                }
-
-                ColumnLayout {
-                    spacing: 0
-                    visible: window.width >= 380
-                    Label {
-                        text: Sesion.nombreCompleto
-                        color: window.colorTextoClaro
-                        font.pixelSize: 11
-                        Layout.alignment: Qt.AlignRight
-                    }
-                    Label {
-                        text: Sesion.nombreRol
-                        color: window.colorTextoSecundario
-                        font.pixelSize: 10
-                        Layout.alignment: Qt.AlignRight
-                    }
-                }
-
-                BotonTexto {
-                    implicitWidth: 72
-                    implicitHeight: 32
-                    texto: qsTr("Salir")
-                    onPulsado: {
-                        Sesion.cerrarSesion()
-                        login.limpiarFormulario()
+                    anchors.rightMargin: 40
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        banner.visible = false
+                        window.abrirPorClave("solicitudes")
                     }
                 }
             }
-        }
 
-        // Banner de solicitud nueva (toca para abrir Solicitudes).
-        Rectangle {
-            id: banner
-            visible: false
-            Layout.fillWidth: true
-            implicitHeight: 38
-            color: window.colorTarjeta
-            border.width: 1
-            border.color: window.colorDorado
+            // Contenido
+            // clip: la animacion al cambiar de vista no se sale de aqui
+            // (antes pasaba por encima de la barra lateral).
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
 
-            Label {
-                anchors.centerIn: parent
-                width: parent.width - 24
-                text: window.textoBanner
-                color: window.colorDorado
-                font.pixelSize: 12
-                font.weight: Font.Medium
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-            }
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    banner.visible = false
-                    window.abrirPorClave("solicitudes")
+                HoverHandler {
+                    onPointChanged: inactividad.restart()
                 }
-            }
-        }
 
-        // Contenido: login sin sesion; menu y vistas con sesion.
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            HoverHandler {
-                onPointChanged: inactividad.restart()
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: window.colorFondo
-            }
-
-            PantallaLogin {
-                id: login
-                anchors.fill: parent
-                visible: !Sesion.haySesion
-            }
-
-            StackView {
-                id: pila
-                anchors.fill: parent
-                visible: Sesion.haySesion
-                initialItem: menuInicio
+                StackView {
+                    id: pila
+                    anchors.fill: parent
+                    initialItem: menuInicio
+                }
             }
         }
     }

@@ -15,15 +15,15 @@ import NexStay
 Item {
     id: window
 
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#1a1a1a"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorExito: "#6fcf97"
-    property color colorError: "#e05c5c"
-    property color colorNeutro: "#6a9bd8"
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
+    property color colorExito: Tema.exito
+    property color colorError: Tema.error
+    property color colorNeutro: Tema.neutro
 
     BitacoraAcceso {
         id: bitacora
@@ -77,29 +77,15 @@ Item {
             Label {
                 text: qsTr("Tu rol no tiene permiso para ver la bitácora de accesos.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
-            Button {
+            BotonApp {
                 Layout.topMargin: 10
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Reintentar")
-                contentItem: Text {
-                    text: parent.text
-                    color: window.colorTextoClaro
-                    font.pixelSize: 13
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                background: Rectangle {
-                    color: "transparent"
-                    radius: 8
-                    border.width: 1
-                    border.color: "#444444"
-                    implicitWidth: 140
-                    implicitHeight: 38
-                }
                 onClicked: window.actualizar()
             }
         }
@@ -125,28 +111,14 @@ Item {
                     Label {
                         text: qsTr("Últimos %1 registros, de todas las habitaciones").arg(window.listaRegistros.length)
                         color: window.colorTextoSecundario
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                     }
                 }
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                BotonApp {
                     text: qsTr("Actualizar")
-                    contentItem: Text {
-                        text: parent.text
-                        color: window.colorTextoClaro
-                        font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                    background: Rectangle {
-                        color: "transparent"
-                        radius: 8
-                        border.width: 1
-                        border.color: "#444444"
-                        implicitWidth: 90
-                        implicitHeight: 34
-                    }
                     onClicked: window.actualizar()
                 }
             }
@@ -161,7 +133,7 @@ Item {
                 visible: window.listaRegistros.length === 0
                 text: qsTr("Todavía no hay registros en la bitácora.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 24
             }
@@ -213,14 +185,14 @@ Item {
                                 Label {
                                     text: qsTr("Hab. %1").arg(modelData.numeroHabitacion)
                                     color: window.colorDorado
-                                    font.pixelSize: 12
+                                    font.pixelSize: 13
                                 }
                             }
 
                             Label {
                                 text: modelData.actor + " · " + modelData.rolUsado
                                 color: window.colorTextoClaro
-                                font.pixelSize: 12
+                                font.pixelSize: 13
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
                             }
@@ -228,7 +200,7 @@ Item {
                             Label {
                                 text: modelData.fechaHora
                                 color: window.colorTextoSecundario
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                             }
                         }
                     }

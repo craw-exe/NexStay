@@ -18,14 +18,14 @@ import NexStay
 Item {
     id: root
 
-    readonly property color colorFondo: "#0d0d0d"
-    readonly property color colorTarjeta: "#1a1a1a"
-    readonly property color colorBorde: "#2a2a2a"
-    readonly property color colorDorado: "#D4AF37"
-    readonly property color colorTextoSecundario: "#8a8a8a"
-    readonly property color colorTextoClaro: "#f2f2f2"
-    readonly property color colorError: "#e05c5c"
-    readonly property color colorExito: "#6fcf97"
+    readonly property color colorFondo: Tema.fondo
+    readonly property color colorTarjeta: Tema.tarjeta
+    readonly property color colorBorde: Tema.borde
+    readonly property color colorDorado: Tema.primario
+    readonly property color colorTextoSecundario: Tema.textoSecundario
+    readonly property color colorTextoClaro: Tema.texto
+    readonly property color colorError: Tema.error
+    readonly property color colorExito: Tema.exito
 
     property var listaUsuarios: []
     property var listaRoles: []
@@ -114,14 +114,20 @@ Item {
         radius: 8
         color: principal ? root.colorDorado : "transparent"
         border.width: principal ? 0 : 1
-        border.color: peligro ? root.colorError : "#444444"
+        border.color: peligro ? root.colorError : Tema.bordeFuerte
         Label {
             id: etiqueta
             anchors.centerIn: parent
-            color: boton.principal ? "#1a1400" : (boton.peligro ? root.colorError : root.colorTextoClaro)
+            color: boton.principal ? Tema.textoSobrePrimario : (boton.peligro ? root.colorError : root.colorTextoClaro)
             font.pixelSize: 13
         }
-        MouseArea { anchors.fill: parent; onClicked: boton.pulsado() }
+        MouseArea {
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            ResaltadoHover {}
+            anchors.fill: parent
+            onClicked: boton.pulsado()
+        }
     }
 
     // Chip seleccionable (roles, acciones).
@@ -134,31 +140,37 @@ Item {
         implicitHeight: 32
         implicitWidth: lbl.implicitWidth + 24
         radius: 16
-        color: activo ? root.colorDorado : "#222222"
+        color: activo ? root.colorDorado : Tema.suave
         border.width: 1
-        border.color: activo ? root.colorDorado : "#3a3a3a"
+        border.color: activo ? root.colorDorado : Tema.borde
         opacity: bloqueado ? 0.55 : 1
         Label {
             id: lbl
             anchors.centerIn: parent
-            color: chip.activo ? "#1a1400" : root.colorTextoSecundario
-            font.pixelSize: 12
+            color: chip.activo ? Tema.textoSobrePrimario : root.colorTextoSecundario
+            font.pixelSize: 13
             font.weight: chip.activo ? Font.Medium : Font.Normal
         }
-        MouseArea { anchors.fill: parent; onClicked: chip.pulsado() }
+        MouseArea {
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            ResaltadoHover {}
+            anchors.fill: parent
+            onClicked: chip.pulsado()
+        }
     }
 
     component Campo: TextField {
         color: root.colorTextoClaro
-        placeholderTextColor: "#666666"
+        placeholderTextColor: Tema.placeholder
         font.pixelSize: 13
         selectByMouse: true
         Layout.fillWidth: true
         background: Rectangle {
             radius: 8
-            color: "#111111"
+            color: Tema.campo
             border.width: 1
-            border.color: parent.activeFocus ? root.colorDorado : "#333333"
+            border.color: parent.activeFocus ? root.colorDorado : Tema.borde
         }
     }
 
@@ -200,7 +212,7 @@ Item {
             visible: root.mensaje.length > 0
             text: root.mensaje
             color: root.mensajeExito ? root.colorExito : root.colorError
-            font.pixelSize: 12
+            font.pixelSize: 13
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             Layout.leftMargin: 14
@@ -253,7 +265,7 @@ Item {
                             Label {
                                 text: modelData.correo
                                 color: root.colorTextoSecundario
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -263,18 +275,21 @@ Item {
                             Label {
                                 text: modelData.rol
                                 color: root.colorDorado
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                                 Layout.alignment: Qt.AlignRight
                             }
                             Label {
                                 text: modelData.estado === "activo" ? qsTr("activo") : qsTr("inactivo")
                                 color: modelData.estado === "activo" ? root.colorExito : root.colorError
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                                 Layout.alignment: Qt.AlignRight
                             }
                         }
                     }
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: {
                             root.usuarioSeleccionado = modelData
@@ -301,7 +316,7 @@ Item {
                     Label {
                         text: qsTr("Rol")
                         color: root.colorTextoSecundario
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                     }
                     Flow {
                         Layout.fillWidth: true
@@ -319,7 +334,7 @@ Item {
                     Label {
                         text: qsTr("Toca una acción para concederla (dorado) o quitarla. Los cambios se aplican a ese rol de inmediato; quienes ya tienen sesión los verán al volver al menú.")
                         color: root.colorTextoSecundario
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -467,12 +482,12 @@ Item {
             Label {
                 text: root.usuarioSeleccionado ? root.usuarioSeleccionado.correo : ""
                 color: root.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
             }
             Label {
                 text: qsTr("Rol")
                 color: root.colorTextoSecundario
-                font.pixelSize: 11
+                font.pixelSize: 12
             }
             Flow {
                 Layout.fillWidth: true

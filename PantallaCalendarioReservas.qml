@@ -24,12 +24,24 @@ import NexStay
 Item {
     id: window
 
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#161616"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
+    // Theme 11: boton "+ Nueva reserva" (PantallaPrincipal abre esa vista).
+    signal nuevaReserva()
+
+    // Theme 11: salto directo a cualquier fecha (mes o año).
+    SelectorFecha {
+        id: selectorFecha
+        onElegida: function(fecha) {
+            window.fechaInicio = fecha
+            window.cargarDatos()
+        }
+    }
+
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
 
     property int totalDias: 14
     property int anchoColumnaEtiqueta: 90
@@ -178,23 +190,33 @@ Item {
                               ? window.etiquetaDia(window.dias[0]) + " – " + window.etiquetaDia(window.dias[window.dias.length - 1])
                               : ""
                         color: window.colorTextoSecundario
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                     }
                 }
 
                 Row {
                     spacing: 6
-                    Button {
+                    BotonApp {
                         text: qsTr("‹ Semana")
                         onClicked: window.moverDias(-7)
                     }
-                    Button {
+                    BotonApp {
                         text: qsTr("Hoy")
                         onClicked: window.irAHoy()
                     }
-                    Button {
+                    BotonApp {
                         text: qsTr("Semana ›")
                         onClicked: window.moverDias(7)
+                    }
+                    BotonApp {
+                        text: qsTr("📅 Ir a fecha")
+                        onClicked: selectorFecha.abrir(window.fechaInicio)
+                    }
+                    BotonApp {
+                        id: botonNueva
+                        principal: true
+                        text: qsTr("+ Nueva reserva")
+                        onClicked: window.nuevaReserva()
                     }
                 }
             }
@@ -205,27 +227,27 @@ Item {
                 Row {
                     spacing: 6
                     Rectangle { width: 14; height: 14; radius: 3; color: window.colorDorado; anchors.verticalCenter: parent.verticalCenter }
-                    Label { text: qsTr("Reservada"); color: window.colorTextoSecundario; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                    Label { text: qsTr("Reservada"); color: window.colorTextoSecundario; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Row {
                     spacing: 6
                     Rectangle { width: 14; height: 14; radius: 3; color: window.colorTarjeta; border.color: window.colorBorde; border.width: 1; anchors.verticalCenter: parent.verticalCenter }
-                    Label { text: qsTr("Libre"); color: window.colorTextoSecundario; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                    Label { text: qsTr("Libre"); color: window.colorTextoSecundario; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
                 }
             }
 
             Label {
                 visible: window.aviso.length > 0
                 text: window.aviso
-                color: window.avisoEsError ? "#e05c5c" : "#6fcf97"
-                font.pixelSize: 12
+                color: window.avisoEsError ? Tema.error : Tema.exito
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
             Label {
                 text: qsTr("Toca una celda libre para reservar o una dorada para ver la reserva.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 11
+                font.pixelSize: 12
             }
 
             // Cuadrícula (con scroll horizontal y vertical)
@@ -247,7 +269,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: qsTr("Habitación")
                                 color: window.colorTextoSecundario
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
                         Repeater {
@@ -263,7 +285,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: window.etiquetaDia(modelData)
                                     color: window.colorTextoSecundario
-                                    font.pixelSize: 10
+                                    font.pixelSize: 11
                                 }
                             }
                         }
@@ -287,7 +309,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: modelData.numero
                                     color: window.colorTextoClaro
-                                    font.pixelSize: 12
+                                    font.pixelSize: 13
                                     font.weight: Font.Medium
                                 }
                             }
@@ -306,8 +328,10 @@ Item {
                                     border.width: 1
 
                                     MouseArea {
-                                        anchors.fill: parent
+                                        hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
+                                        ResaltadoHover {}
+                                        anchors.fill: parent
                                         onClicked: parent.reserva !== null
                                                    ? window.abrirDetalle(parent.reserva.idReserva)
                                                    : window.abrirNueva(filaHabitacion.modelData, parent.modelData)
@@ -318,7 +342,7 @@ Item {
                                         anchors.fill: parent
                                         anchors.margins: 2
                                         text: parent.reserva ? parent.reserva.nombreHuesped : ""
-                                        color: "#1a1400"
+                                        color: Tema.textoSobrePrimario
                                         font.pixelSize: 9
                                         elide: Text.ElideRight
                                         verticalAlignment: Text.AlignVCenter
@@ -340,7 +364,7 @@ Item {
         width: Math.min(parent.width - 32, 420)
         modal: true
         padding: 18
-        background: Rectangle { color: "#1a1a1a"; radius: 12; border.color: window.colorDorado; border.width: 1 }
+        background: Rectangle { color: Tema.tarjeta; radius: 12; border.color: window.colorDorado; border.width: 1 }
 
         ColumnLayout {
             width: parent.width
@@ -353,8 +377,8 @@ Item {
             }
             RowLayout {
                 spacing: 10
-                Label { text: qsTr("Entrada: %1").arg(window.nueva.entrada); color: window.colorTextoClaro; font.pixelSize: 12 }
-                Label { text: qsTr("Noches:"); color: window.colorTextoSecundario; font.pixelSize: 12 }
+                Label { text: qsTr("Entrada: %1").arg(window.nueva.entrada); color: window.colorTextoClaro; font.pixelSize: 13 }
+                Label { text: qsTr("Noches:"); color: window.colorTextoSecundario; font.pixelSize: 13 }
                 SpinBox { id: campoNoches; from: 1; to: 30; value: 1 }
             }
             Label {
@@ -362,7 +386,7 @@ Item {
                       ? qsTr("Salida: %1").arg(modelo.sumarDias(window.nueva.entrada, campoNoches.value))
                       : ""
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
             }
             TextField {
                 id: campoBuscar
@@ -380,15 +404,18 @@ Item {
                     width: ListView.view.width
                     height: 34
                     color: window.huespedElegido && window.huespedElegido.idHuesped === modelData.idHuesped
-                           ? "#3a3218" : "transparent"
+                           ? Tema.primarioSuave : "transparent"
                     Label {
                         anchors.verticalCenter: parent.verticalCenter
                         x: 8
                         text: modelData.nombre + "  ·  " + modelData.documento
                         color: window.colorTextoClaro
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                     }
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: window.huespedElegido = parent.modelData
                     }
@@ -398,23 +425,24 @@ Item {
                 visible: window.resultados.length === 0
                 text: qsTr("No hay huéspedes con ese dato. Regístralo primero en \"Registrar huésped\".")
                 color: window.colorTextoSecundario
-                font.pixelSize: 11
+                font.pixelSize: 12
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
             Label {
                 id: errorNueva
                 visible: text.length > 0
-                color: "#e05c5c"
-                font.pixelSize: 11
+                color: Tema.error
+                font.pixelSize: 12
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
             RowLayout {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }
-                Button { text: qsTr("Cancelar"); onClicked: popupNueva.close() }
-                Button {
+                BotonApp { text: qsTr("Cancelar"); onClicked: popupNueva.close() }
+                BotonApp {
+                    principal: true
                     text: qsTr("Reservar")
                     enabled: window.huespedElegido !== null
                     onClicked: {
@@ -436,7 +464,7 @@ Item {
         width: Math.min(parent.width - 32, 400)
         modal: true
         padding: 18
-        background: Rectangle { color: "#1a1a1a"; radius: 12; border.color: window.colorDorado; border.width: 1 }
+        background: Rectangle { color: Tema.tarjeta; radius: 12; border.color: window.colorDorado; border.width: 1 }
 
         ColumnLayout {
             width: parent.width
@@ -455,19 +483,19 @@ Item {
             Label {
                 text: qsTr("Del %1 al %2").arg(window.detalle.entrada).arg(window.detalle.salida)
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
             }
             Label {
                 text: window.detalle.enEstadia ? qsTr("Huésped hospedado (check-in hecho)")
                                                : qsTr("Estado: %1").arg(window.detalle.estado)
-                color: window.detalle.enEstadia ? "#6fcf97" : window.colorTextoSecundario
-                font.pixelSize: 12
+                color: window.detalle.enEstadia ? Tema.exito : window.colorTextoSecundario
+                font.pixelSize: 13
             }
             Label {
                 id: errorDetalle
                 visible: text.length > 0
-                color: "#e05c5c"
-                font.pixelSize: 11
+                color: Tema.error
+                font.pixelSize: 12
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -475,22 +503,23 @@ Item {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
                 spacing: 8
-                Button {
+                BotonApp {
                     visible: window.detalle.puedeCheckIn === true
+                    principal: true
                     text: qsTr("Check-in")
                     onClicked: recepcion.checkIn(window.detalle.idReserva)
                 }
-                Button {
+                BotonApp {
                     visible: window.detalle.puedeCheckOut === true
                     text: qsTr("Check-out")
                     onClicked: recepcion.checkOut(window.detalle.idReserva)
                 }
-                Button {
+                BotonApp {
                     visible: window.detalle.puedeCancelar === true
                     text: qsTr("Cancelar reserva")
                     onClicked: recepcion.cancelarReserva(window.detalle.idReserva)
                 }
-                Button {
+                BotonApp {
                     text: qsTr("Cerrar")
                     onClicked: popupDetalle.close()
                 }

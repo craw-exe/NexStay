@@ -9,16 +9,16 @@ import NexStay
 Item {
     id: vista
 
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#1a1a1a"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorExito: "#6fcf97"
-    property color colorError: "#e05c5c"
-    property color colorAviso: "#e0a85c"
-    property color colorNeutro: "#6a9bd8"
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
+    property color colorExito: Tema.exito
+    property color colorError: Tema.error
+    property color colorAviso: Tema.aviso
+    property color colorNeutro: Tema.neutro
 
     ListaHabitaciones {
         id: lista
@@ -70,7 +70,7 @@ Item {
             Label {
                 text: qsTr("Tu rol no tiene permiso para ver las habitaciones.")
                 color: vista.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
@@ -100,18 +100,21 @@ Item {
                         radius: 15
                         color: activo ? vista.colorDorado : "transparent"
                         border.width: activo ? 0 : 1
-                        border.color: modelData === "" ? "#444444" : vista.colorEstado(modelData)
+                        border.color: modelData === "" ? Tema.bordeFuerte : vista.colorEstado(modelData)
                         Label {
                             id: textoFiltro
                             anchors.centerIn: parent
                             text: (parent.modelData === "" ? qsTr("Todas") : parent.modelData)
                                   + ": " + vista.cuantas(parent.modelData)
-                            color: parent.activo ? "#1a1400"
+                            color: parent.activo ? Tema.textoSobrePrimario
                                  : parent.modelData === "" ? vista.colorTextoClaro
                                  : vista.colorEstado(parent.modelData)
-                            font.pixelSize: 11
+                            font.pixelSize: 12
                         }
                         MouseArea {
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            ResaltadoHover {}
                             anchors.fill: parent
                             onClicked: vista.filtro = parent.modelData
                         }
@@ -120,11 +123,14 @@ Item {
                 Label {
                     text: qsTr("Actualizar")
                     color: vista.colorDorado
-                    font.pixelSize: 12
+                    font.pixelSize: 13
                     height: 30
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 8
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         anchors.margins: -6
                         onClicked: vista.actualizar()
@@ -136,7 +142,7 @@ Item {
                 visible: vista.filtradas.length === 0
                 text: qsTr("No hay habitaciones con ese estado.")
                 color: vista.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
             }
 
             ListView {
@@ -153,7 +159,7 @@ Item {
                     required property string section
                     text: qsTr("Piso %1").arg(section)
                     color: vista.colorTextoSecundario
-                    font.pixelSize: 12
+                    font.pixelSize: 13
                     topPadding: 8
                     bottomPadding: 2
                 }
@@ -184,20 +190,20 @@ Item {
                             Label {
                                 text: qsTr("%1 · %2 persona(s)").arg(modelData.tipo).arg(modelData.capacidad)
                                 color: vista.colorTextoSecundario
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                                 Layout.fillWidth: true
                             }
                             Label {
                                 text: "● " + modelData.estado
                                 color: vista.colorEstado(modelData.estado)
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
                         Label {
                             visible: modelData.huesped.length > 0
                             text: qsTr("Huésped: %1 · sale el %2").arg(modelData.huesped).arg(modelData.salida)
                             color: vista.colorTextoSecundario
-                            font.pixelSize: 11
+                            font.pixelSize: 12
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }

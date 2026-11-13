@@ -42,12 +42,14 @@ int Recepcion::registrarHuesped(const QString &nombre, const QString &apellido,
     const QString t = telefono.trimmed();
     const QString c = correo.trimmed().toLower();
 
-    if (n.isEmpty() || a.isEmpty() || d.isEmpty() || t.isEmpty() || c.isEmpty()) {
-        rechazar(tr("Completa todos los campos."));
+    // Theme 11: el correo es opcional (muchos huespedes no lo dan en
+    // recepcion); si se escribe, se sigue validando el formato.
+    if (n.isEmpty() || a.isEmpty() || d.isEmpty() || t.isEmpty()) {
+        rechazar(tr("Completa nombre, apellido, documento y teléfono."));
         return -1;
     }
     static const QRegularExpression formatoCorreo(QStringLiteral("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"));
-    if (!formatoCorreo.match(c).hasMatch()) {
+    if (!c.isEmpty() && !formatoCorreo.match(c).hasMatch()) {
         rechazar(tr("El correo no tiene un formato válido."));
         return -1;
     }
@@ -92,13 +94,15 @@ QVariantList Recepcion::buscarHuespedes(const QString &texto, int limite)
     }
     QSqlQuery query;
     query.prepare(QStringLiteral(
-        "SELECT id_huesped, nombre || ' ' || apellido AS completo, documento_identidad "
+        "SELECT id_huesped, nombre || ' ' || apellido AS completo, documento_identidad, telefono "
         "FROM Huesped "
         "WHERE (nombre || ' ' || apellido) LIKE :t OR documento_identidad LIKE :t2 "
+        "OR telefono LIKE :t3 "
         "ORDER BY apellido, nombre LIMIT :limite"));
     const QString patron = QLatin1Char('%') + texto.trimmed() + QLatin1Char('%');
     query.bindValue(":t", patron);
     query.bindValue(":t2", patron);
+    query.bindValue(":t3", patron);
     query.bindValue(":limite", qBound(1, limite, 100));
     if (!query.exec()) {
         qWarning() << "buscarHuespedes():" << query.lastError().text();
@@ -109,6 +113,7 @@ QVariantList Recepcion::buscarHuespedes(const QString &texto, int limite)
         fila[QStringLiteral("idHuesped")] = query.value(0).toInt();
         fila[QStringLiteral("nombre")] = query.value(1).toString();
         fila[QStringLiteral("documento")] = query.value(2).toString();
+        fila[QStringLiteral("telefono")] = query.value(3).toString();
         resultado.append(fila);
     }
     return resultado;

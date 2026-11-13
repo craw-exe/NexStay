@@ -17,13 +17,13 @@ import NexStay
 Item {
     id: window
 
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#1a1a1a"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorError: "#e05c5c"
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
+    property color colorError: Tema.error
 
     // "todas", "alta", "media" o "baja"
     property string filtro: "todas"
@@ -87,14 +87,14 @@ Item {
     }
 
     function colorPrioridad(p) {
-        if (p === "alta") return "#e05c5c"
-        if (p === "media") return "#D4AF37"
-        return "#6a9bd8"
+        if (p === "alta") return Tema.error
+        if (p === "media") return Tema.primario
+        return Tema.neutro
     }
     function fondoPrioridad(p) {
-        if (p === "alta") return "#3a1a1a"
-        if (p === "media") return "#2e2610"
-        return "#17263a"
+        if (p === "alta") return Tema.errorSuave
+        if (p === "media") return Tema.avisoSuave
+        return Tema.neutroSuave
     }
     function etiquetaPrioridad(p) {
         if (p === "alta") return qsTr("Alta")
@@ -145,7 +145,7 @@ Item {
                     text: Sesion.nombreRol + " · "
                           + qsTr("%1 abiertas").arg(alertas.solicitudes.length)
                     color: window.colorTextoSecundario
-                    font.pixelSize: 11
+                    font.pixelSize: 12
                 }
             }
 
@@ -171,16 +171,19 @@ Item {
                         radius: 8
                         color: activa ? window.colorDorado : "transparent"
                         border.width: 1
-                        border.color: activa ? window.colorDorado : "#444444"
+                        border.color: activa ? window.colorDorado : Tema.bordeFuerte
 
                         Label {
                             anchors.centerIn: parent
                             text: pestana.modelData.texto
-                            color: pestana.activa ? "#1a1400" : window.colorTextoSecundario
-                            font.pixelSize: 12
+                            color: pestana.activa ? Tema.textoSobrePrimario : window.colorTextoSecundario
+                            font.pixelSize: 13
                             font.weight: pestana.activa ? Font.Medium : Font.Normal
                         }
                         MouseArea {
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            ResaltadoHover {}
                             anchors.fill: parent
                             onClicked: {
                                 window.vista = pestana.modelData.clave
@@ -215,16 +218,19 @@ Item {
                         radius: 14
                         color: "transparent"
                         border.width: 1
-                        border.color: activo ? window.colorDorado : "#444444"
+                        border.color: activo ? window.colorDorado : Tema.bordeFuerte
 
                         Label {
                             id: textoChip
                             anchors.centerIn: parent
                             text: chip.modelData.texto + " " + window.contar(chip.modelData.clave)
                             color: chip.activo ? window.colorDorado : window.colorTextoSecundario
-                            font.pixelSize: 12
+                            font.pixelSize: 13
                         }
                         MouseArea {
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            ResaltadoHover {}
                             anchors.fill: parent
                             onClicked: window.filtro = chip.modelData.clave
                         }
@@ -236,7 +242,7 @@ Item {
                 visible: window.mensajeError.length > 0
                 text: window.mensajeError
                 color: window.colorError
-                font.pixelSize: 11
+                font.pixelSize: 12
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -246,7 +252,7 @@ Item {
                 visible: !Sesion.haySesion
                 text: qsTr("Inicia sesión en la pantalla de login para ver tus solicitudes.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
@@ -259,7 +265,7 @@ Item {
                       ? qsTr("Sin solicitudes pendientes.")
                       : qsTr("No hay solicitudes con esa prioridad.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
                 Layout.topMargin: 30
@@ -312,7 +318,7 @@ Item {
                                          ? " · " + qsTr("En proceso: %1").arg(modelData.responsable)
                                          : "")
                                 color: window.colorTextoSecundario
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
 
@@ -327,13 +333,16 @@ Item {
                                 anchors.centerIn: parent
                                 text: window.etiquetaPrioridad(modelData.prioridad)
                                 color: window.colorPrioridad(modelData.prioridad)
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
                         }
                     }
 
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: {
                             window.seleccionada = modelData
@@ -351,7 +360,7 @@ Item {
                           .arg(window.etiquetaDuracion(window.promedio("segundosRespuesta")))
                           .arg(window.etiquetaDuracion(window.promedio("segundosResolucion")))
                 color: window.colorDorado
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -360,7 +369,7 @@ Item {
                          && window.historial.length === 0
                 text: qsTr("Todavía no hay solicitudes atendidas.")
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
                 Layout.topMargin: 30
@@ -405,7 +414,7 @@ Item {
                                       .arg(window.etiquetaDuracion(modelData.segundosRespuesta))
                                       .arg(window.etiquetaDuracion(modelData.segundosResolucion))
                             color: window.colorDorado
-                            font.pixelSize: 11
+                            font.pixelSize: 12
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -413,7 +422,7 @@ Item {
                             text: (modelData.responsable.length > 0 ? modelData.responsable + " · " : "")
                                   + modelData.fechaResolucion
                             color: window.colorTextoSecundario
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -482,7 +491,7 @@ Item {
                             .arg(window.etiquetaEspera(window.seleccionada.minutosEspera))
                       : ""
                 color: window.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -493,7 +502,7 @@ Item {
                 visible: window.mensajeError.length > 0
                 text: window.mensajeError
                 color: window.colorError
-                font.pixelSize: 11
+                font.pixelSize: 12
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -509,7 +518,7 @@ Item {
                     radius: 8
                     color: "transparent"
                     border.width: 1
-                    border.color: "#444444"
+                    border.color: Tema.bordeFuerte
                     Label {
                         anchors.centerIn: parent
                         text: qsTr("Cerrar")
@@ -517,6 +526,9 @@ Item {
                         font.pixelSize: 13
                     }
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: detalle.close()
                     }
@@ -537,11 +549,14 @@ Item {
                     Label {
                         anchors.centerIn: parent
                         text: qsTr("Tomar")
-                        color: "#1a1400"
+                        color: Tema.textoSobrePrimario
                         font.pixelSize: 13
                         font.weight: Font.Medium
                     }
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: {
                             // Si se rechaza (otra persona la tomo, no le
@@ -569,11 +584,14 @@ Item {
                     Label {
                         anchors.centerIn: parent
                         text: qsTr("Terminar")
-                        color: "#1a1400"
+                        color: Tema.textoSobrePrimario
                         font.pixelSize: 13
                         font.weight: Font.Medium
                     }
                     MouseArea {
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ResaltadoHover {}
                         anchors.fill: parent
                         onClicked: {
                             if (alertas.marcarAtendida(window.seleccionada.idSolicitud)) {

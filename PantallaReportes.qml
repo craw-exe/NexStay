@@ -14,16 +14,16 @@ import NexStay
 Item {
     id: vista
 
-    property color colorFondo: "#0d0d0d"
-    property color colorTarjeta: "#1a1a1a"
-    property color colorBorde: "#2a2a2a"
-    property color colorDorado: "#D4AF37"
-    property color colorTextoSecundario: "#8a8a8a"
-    property color colorTextoClaro: "#f2f2f2"
-    property color colorExito: "#6fcf97"
-    property color colorError: "#e05c5c"
-    property color colorAviso: "#e0a85c"
-    property color colorNeutro: "#6a9bd8"
+    property color colorFondo: Tema.fondo
+    property color colorTarjeta: Tema.tarjeta
+    property color colorBorde: Tema.borde
+    property color colorDorado: Tema.primario
+    property color colorTextoSecundario: Tema.textoSecundario
+    property color colorTextoClaro: Tema.texto
+    property color colorExito: Tema.exito
+    property color colorError: Tema.error
+    property color colorAviso: Tema.aviso
+    property color colorNeutro: Tema.neutro
 
     Reportes {
         id: reportes
@@ -118,7 +118,7 @@ Item {
         Label {
             id: etiquetaDescripcion
             color: vista.colorTextoSecundario
-            font.pixelSize: 10
+            font.pixelSize: 11
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
         }
@@ -144,7 +144,7 @@ Item {
             Label {
                 text: qsTr("Tu rol no tiene permiso para ver los reportes.")
                 color: vista.colorTextoSecundario
-                font.pixelSize: 12
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
@@ -173,7 +173,7 @@ Item {
                     Label {
                         text: qsTr("Periodo:")
                         color: vista.colorTextoSecundario
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                     }
                     Repeater {
                         model: [7, 30, 90]
@@ -184,14 +184,17 @@ Item {
                             radius: 15
                             color: vista.dias === modelData ? vista.colorDorado : "transparent"
                             border.width: vista.dias === modelData ? 0 : 1
-                            border.color: "#444444"
+                            border.color: Tema.bordeFuerte
                             Label {
                                 anchors.centerIn: parent
                                 text: qsTr("%1 días").arg(parent.modelData)
-                                color: vista.dias === parent.modelData ? "#1a1400" : vista.colorTextoClaro
-                                font.pixelSize: 11
+                                color: vista.dias === parent.modelData ? Tema.textoSobrePrimario : vista.colorTextoClaro
+                                font.pixelSize: 12
                             }
                             MouseArea {
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                ResaltadoHover {}
                                 anchors.fill: parent
                                 onClicked: {
                                     vista.dias = parent.modelData
@@ -204,8 +207,11 @@ Item {
                     Label {
                         text: qsTr("Actualizar")
                         color: vista.colorDorado
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                         MouseArea {
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            ResaltadoHover {}
                             anchors.fill: parent
                             anchors.margins: -8
                             onClicked: vista.actualizar()
@@ -235,7 +241,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: modelData.estado + ": " + modelData.cantidad
                                     color: vista.colorEstado(parent.modelData.estado)
-                                    font.pixelSize: 12
+                                    font.pixelSize: 13
                                 }
                             }
                         }
@@ -297,7 +303,7 @@ Item {
                                 text: modelData.tipo.charAt(0).toUpperCase() + modelData.tipo.slice(1)
                                       + " (" + modelData.resueltas + "/" + modelData.total + ")"
                                 color: vista.colorTextoClaro
-                                font.pixelSize: 12
+                                font.pixelSize: 13
                                 Layout.fillWidth: true
                             }
                             Label {
@@ -305,7 +311,7 @@ Item {
                                         .arg(vista.tiempo(modelData.promedioRespuesta))
                                         .arg(vista.tiempo(modelData.promedioResolucion))
                                 color: vista.colorTextoSecundario
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
                     }
@@ -314,7 +320,7 @@ Item {
                         visible: vista.solicitudes.activasPorPrioridad.length > 0
                         text: qsTr("Activas por prioridad:")
                         color: vista.colorTextoSecundario
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                     }
                     Flow {
                         Layout.fillWidth: true
@@ -325,7 +331,7 @@ Item {
                                 required property var modelData
                                 text: "● " + modelData.prioridad + ": " + modelData.cantidad
                                 color: vista.colorPrioridad(modelData.prioridad)
-                                font.pixelSize: 12
+                                font.pixelSize: 13
                             }
                         }
                     }
@@ -339,7 +345,7 @@ Item {
                         visible: vista.limpieza.length === 0
                         text: qsTr("No hay habitaciones pendientes de limpieza.")
                         color: vista.colorTextoSecundario
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                     }
                     Repeater {
                         model: vista.limpieza
@@ -349,7 +355,7 @@ Item {
                             Label {
                                 text: qsTr("Hab. %1 · piso %2").arg(modelData.numero).arg(modelData.piso)
                                 color: vista.colorTextoClaro
-                                font.pixelSize: 12
+                                font.pixelSize: 13
                                 Layout.fillWidth: true
                             }
                             Label {
@@ -357,7 +363,7 @@ Item {
                                       ? qsTr("%1 solicitud(es) abierta(s)").arg(modelData.solicitudesAbiertas)
                                       : modelData.estadoActual
                                 color: vista.colorAviso
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
                         }
                     }
@@ -371,7 +377,7 @@ Item {
                         visible: vista.mantenimiento.length === 0
                         text: qsTr("Todavía no hay mantenimientos resueltos.")
                         color: vista.colorTextoSecundario
-                        font.pixelSize: 12
+                        font.pixelSize: 13
                     }
                     Repeater {
                         model: vista.mantenimiento
@@ -385,14 +391,14 @@ Item {
                                     text: qsTr("Hab. %1").arg(modelData.numero)
                                           + (modelData.descripcion.length > 0 ? " · " + modelData.descripcion : "")
                                     color: vista.colorTextoClaro
-                                    font.pixelSize: 12
+                                    font.pixelSize: 13
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
                                 Label {
                                     text: "● " + modelData.prioridad
                                     color: vista.colorPrioridad(modelData.prioridad)
-                                    font.pixelSize: 11
+                                    font.pixelSize: 12
                                 }
                             }
                             Label {
@@ -402,7 +408,7 @@ Item {
                                         .arg(vista.tiempo(modelData.minutosResolucion))
                                         .arg(modelData.responsable.length > 0 ? " · " + modelData.responsable : "")
                                 color: vista.colorTextoSecundario
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }

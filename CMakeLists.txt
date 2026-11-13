@@ -20,6 +20,9 @@ qt_add_executable(appNexStay
     Database.cpp
 )
 
+# Rediseño de interfaz: paleta comun para todas las pantallas.
+set_source_files_properties(Tema.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(appNexStay
     URI NexStay
     QML_FILES
@@ -33,6 +36,10 @@ qt_add_qml_module(appNexStay
         PantallaAdministracion.qml
         PantallaReportes.qml
         PantallaHabitaciones.qml
+        Tema.qml
+        ResaltadoHover.qml
+        BotonApp.qml
+        SelectorFecha.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
