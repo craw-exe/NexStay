@@ -23,7 +23,7 @@ Item {
     function limpiarFormulario() {
         campoCorreo.text = ""
         campoContrasena.text = ""
-        mensajeValidacion.visible = false
+        mensajeValidacion.mostrar = false
     }
 
     // Reacciona a los rechazos de login que emite Sesion (correo
@@ -32,17 +32,17 @@ Item {
         target: Sesion
         function onSesionRechazada(motivo) {
             mensajeValidacion.text = motivo
-            mensajeValidacion.visible = true
+            mensajeValidacion.mostrar = true
         }
     }
 
     function entrar() {
         if (!window.formularioValido) {
             mensajeValidacion.text = qsTr("Escribe tu correo y tu contraseña.")
-            mensajeValidacion.visible = true
+            mensajeValidacion.mostrar = true
             return
         }
-        mensajeValidacion.visible = false
+        mensajeValidacion.mostrar = false
         // Si el login es correcto, Sesion.haySesion pasa a true y
         // PantallaPrincipal cambia de vista sola.
         if (Sesion.iniciarSesion(campoCorreo.text, campoContrasena.text)) {
@@ -253,7 +253,7 @@ Item {
 
                     // Mensaje de validación (campos vacíos o login rechazado)
                     Rectangle {
-                        visible: mensajeValidacion.visible
+                        visible: mensajeValidacion.mostrar
                         Layout.fillWidth: true
                         Layout.topMargin: 12
                         implicitHeight: mensajeValidacion.implicitHeight + 20
@@ -261,6 +261,9 @@ Item {
                         color: Tema.errorSuave
                         Label {
                             id: mensajeValidacion
+                            // Se usa 'mostrar' y no 'visible': el recuadro que lo contiene
+                            // dependia de su visibilidad y nunca se mostraba.
+                            property bool mostrar: false
                             anchors.verticalCenter: parent.verticalCenter
                             x: 12
                             width: parent.width - 24
@@ -268,7 +271,6 @@ Item {
                             color: Tema.error
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
-                            visible: false
                         }
                     }
 
