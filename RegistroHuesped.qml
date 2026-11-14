@@ -214,8 +214,10 @@ Item {
             spacing: 16
 
             RowLayout {
+                Layout.fillWidth: true
                 spacing: 12
                 Rectangle {
+                    Layout.alignment: Qt.AlignTop
                     width: 34; height: 34; radius: 17
                     color: seccion.completa ? Tema.exito : Tema.primarioSuave
                     Label {
@@ -226,25 +228,33 @@ Item {
                         font.weight: Font.Bold
                     }
                 }
+                // Theme 11 Task 5: titulo y subtitulo se parten en renglones
+                // en pantallas angostas (antes empujaban el ancho de la tarjeta).
                 ColumnLayout {
                     spacing: 0
+                    Layout.fillWidth: true
                     Label {
                         text: seccion.titulo
                         color: Tema.texto
                         font.pixelSize: 18
                         font.weight: Font.Bold
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
                     }
                     Label {
                         visible: seccion.subtitulo.length > 0
                         text: seccion.subtitulo
                         color: Tema.textoSecundario
                         font.pixelSize: 13
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
                     }
                 }
             }
             ColumnLayout {
                 id: cuerpo
                 Layout.fillWidth: true
+                Layout.maximumWidth: columna.width
                 spacing: 12
             }
         }
@@ -566,7 +576,8 @@ Item {
                     visible: vista.huesped === null && !vista.modoNuevo
                     Layout.fillWidth: true
                     focus: true
-                    placeholderText: qsTr("🔍  Escribe nombre, INE o teléfono del huésped")
+                    placeholderText: vista.pantallaAncha ? qsTr("🔍  Escribe nombre, INE o teléfono del huésped")
+                                                         : qsTr("🔍  Nombre, INE o teléfono")
                     color: Tema.texto
                     placeholderTextColor: Tema.placeholder
                     font.pixelSize: 16

@@ -137,30 +137,40 @@ bool AlertasPersonal::tomarSolicitud(int idSolicitud)
         emit operacionRechazada(QStringLiteral("Tu rol no puede atender solicitudes."));
         return false;
     }
+    const QString motivo = tomarComo(idSolicitud, idUsuario, rol);
+    if (!motivo.isEmpty()) {
+        emit operacionRechazada(motivo);
+        return false;
+    }
+    emit solicitudTomada(idSolicitud);
+    refrescar();
+    return true;
+}
 
+// Theme 11 Task 6: la regla de "tomar" para un usuario dado, sin depender
+// de la sesion de esta app (la usa tambien ServidorPersonal para los
+// celulares). Devuelve vacio si se pudo, o el motivo si no.
+QString AlertasPersonal::tomarComo(int idSolicitud, int idUsuario, const QString &rol)
+{
     QSqlQuery consulta;
     consulta.prepare(QStringLiteral(
         "SELECT tipo, estado FROM Solicitud_Servicio WHERE id_solicitud = :id"));
     consulta.bindValue(":id", idSolicitud);
     if (!consulta.exec() || !consulta.next()) {
-        emit operacionRechazada(QStringLiteral("La solicitud ya no existe."));
-        return false;
+        return QStringLiteral("La solicitud ya no existe.");
     }
 
     const QString tipoVisible = tipoVisiblePara(rol);
     if (!tipoVisible.isEmpty() && tipoVisible != consulta.value("tipo").toString()) {
-        emit operacionRechazada(QStringLiteral("Esta solicitud no corresponde a tu rol."));
-        return false;
+        return QStringLiteral("Esta solicitud no corresponde a tu rol.");
     }
 
     const QString estado = consulta.value("estado").toString();
     if (estado == QLatin1String("resuelta")) {
-        emit operacionRechazada(QStringLiteral("Esta solicitud ya fue atendida."));
-        return false;
+        return QStringLiteral("Esta solicitud ya fue atendida.");
     }
     if (estado == QLatin1String("en_proceso")) {
-        emit operacionRechazada(QStringLiteral("Otra persona ya la está atendiendo."));
-        return false;
+        return QStringLiteral("Otra persona ya la está atendiendo.");
     }
 
     // "estado = 'pendiente'" en el WHERE: si dos personas la toman a la
@@ -178,17 +188,13 @@ bool AlertasPersonal::tomarSolicitud(int idSolicitud)
 
     if (!actualizar.exec()) {
         qWarning() << "No se pudo tomar la solicitud:" << actualizar.lastError().text();
-        emit operacionRechazada(QStringLiteral("No se pudo guardar el cambio. Intenta de nuevo."));
-        return false;
+        return QStringLiteral("No se pudo guardar el cambio. Intenta de nuevo.");
     }
     if (actualizar.numRowsAffected() < 1) {
-        emit operacionRechazada(QStringLiteral("Otra persona la tomó primero."));
-        return false;
+        return QStringLiteral("Otra persona la tomó primero.");
     }
 
-    emit solicitudTomada(idSolicitud);
-    refrescar();
-    return true;
+    return QString();
 }
 
 bool AlertasPersonal::marcarAtendida(int idSolicitud)
@@ -199,32 +205,40 @@ bool AlertasPersonal::marcarAtendida(int idSolicitud)
         emit operacionRechazada(QStringLiteral("Tu rol no puede atender solicitudes."));
         return false;
     }
+    const QString motivo = atenderComo(idSolicitud, idUsuario, rol);
+    if (!motivo.isEmpty()) {
+        emit operacionRechazada(motivo);
+        return false;
+    }
+    emit solicitudAtendida(idSolicitud);
+    refrescar(); // La lista se actualiza al instante, sin esperar al timer.
+    return true;
+}
 
+// Theme 11 Task 6: igual que tomarComo(), para terminar la solicitud.
+QString AlertasPersonal::atenderComo(int idSolicitud, int idUsuario, const QString &rol)
+{
     QSqlQuery consulta;
     consulta.prepare(QStringLiteral(
         "SELECT tipo, estado, id_responsable_asignado FROM Solicitud_Servicio WHERE id_solicitud = :id"));
     consulta.bindValue(":id", idSolicitud);
     if (!consulta.exec() || !consulta.next()) {
-        emit operacionRechazada(QStringLiteral("La solicitud ya no existe."));
-        return false;
+        return QStringLiteral("La solicitud ya no existe.");
     }
 
     const QString tipoVisible = tipoVisiblePara(rol);
     if (!tipoVisible.isEmpty() && tipoVisible != consulta.value("tipo").toString()) {
-        emit operacionRechazada(QStringLiteral("Esta solicitud no corresponde a tu rol."));
-        return false;
+        return QStringLiteral("Esta solicitud no corresponde a tu rol.");
     }
     if (consulta.value("estado").toString() == QLatin1String("resuelta")) {
-        emit operacionRechazada(QStringLiteral("Esta solicitud ya fue atendida."));
-        return false;
+        return QStringLiteral("Esta solicitud ya fue atendida.");
     }
     // Task 3: si otra persona la tomo, solo ella (o un administrador)
     // puede darla por terminada.
     if (consulta.value("estado").toString() == QLatin1String("en_proceso")
         && consulta.value("id_responsable_asignado").toInt() != idUsuario
         && rol != QLatin1String("administrador")) {
-        emit operacionRechazada(QStringLiteral("La está atendiendo otra persona."));
-        return false;
+        return QStringLiteral("La está atendiendo otra persona.");
     }
 
     // "estado <> 'resuelta'" en el WHERE evita que dos personas la
@@ -242,17 +256,13 @@ bool AlertasPersonal::marcarAtendida(int idSolicitud)
 
     if (!actualizar.exec()) {
         qWarning() << "No se pudo marcar la solicitud como atendida:" << actualizar.lastError().text();
-        emit operacionRechazada(QStringLiteral("No se pudo guardar el cambio. Intenta de nuevo."));
-        return false;
+        return QStringLiteral("No se pudo guardar el cambio. Intenta de nuevo.");
     }
     if (actualizar.numRowsAffected() < 1) {
-        emit operacionRechazada(QStringLiteral("Esta solicitud ya fue atendida."));
-        return false;
+        return QStringLiteral("Esta solicitud ya fue atendida.");
     }
 
-    emit solicitudAtendida(idSolicitud);
-    refrescar(); // La lista se actualiza al instante, sin esperar al timer.
-    return true;
+    return QString();
 }
 
 void AlertasPersonal::refrescar()
@@ -291,53 +301,81 @@ void AlertasPersonal::refrescar()
 
     // 2) Lista de pendientes visibles para este usuario.
     QVariantList lista;
-    if (!rol.isEmpty()) {
-        QString sql = QStringLiteral(
-            "SELECT s.id_solicitud, s.tipo, s.prioridad, s.origen, s.estado, "
-            "       s.id_responsable_asignado, s.fecha_creacion, h.numero, "
-            "       u.nombre || ' ' || u.apellido AS responsable, "
-            "       CAST((julianday('now','localtime') - julianday(s.fecha_creacion)) * 1440 AS INTEGER) AS minutos_espera "
-            "FROM Solicitud_Servicio s "
-            "JOIN Habitacion h ON h.id_habitacion = s.id_habitacion "
-            "LEFT JOIN Usuario u ON u.id_usuario = s.id_responsable_asignado "
-            "WHERE s.estado IN ('pendiente', 'en_proceso') ");
-        if (!tipoVisible.isEmpty()) {
-            sql += QStringLiteral("AND s.tipo = :tipo ");
-        }
-        sql += QStringLiteral(
-            "ORDER BY CASE s.prioridad WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, "
-            "         s.fecha_creacion, s.id_solicitud");
-
-        QSqlQuery pendientes;
-        pendientes.prepare(sql);
-        if (!tipoVisible.isEmpty()) {
-            pendientes.bindValue(":tipo", tipoVisible);
-        }
-
-        if (pendientes.exec()) {
-            while (pendientes.next()) {
-                QVariantMap fila;
-                fila[QStringLiteral("idSolicitud")] = pendientes.value("id_solicitud").toInt();
-                fila[QStringLiteral("numeroHabitacion")] = pendientes.value("numero").toString();
-                fila[QStringLiteral("tipo")] = pendientes.value("tipo").toString();
-                fila[QStringLiteral("prioridad")] = pendientes.value("prioridad").toString();
-                fila[QStringLiteral("origen")] = pendientes.value("origen").toString();
-                fila[QStringLiteral("estado")] = pendientes.value("estado").toString();
-                fila[QStringLiteral("idResponsable")] = pendientes.value("id_responsable_asignado").toInt();
-                fila[QStringLiteral("responsable")] = pendientes.value("responsable").toString();
-                fila[QStringLiteral("fechaCreacion")] = pendientes.value("fecha_creacion").toString();
-                fila[QStringLiteral("minutosEspera")] = qMax(0, pendientes.value("minutos_espera").toInt());
-                lista.append(fila);
-            }
-        } else {
-            qWarning() << "AlertasPersonal: no se pudieron leer pendientes:"
-                       << pendientes.lastError().text();
-            return; // Se conserva la lista anterior hasta el proximo ciclo.
-        }
+    if (!rol.isEmpty() && !pendientesPara(rol, &lista)) {
+        return; // Se conserva la lista anterior hasta el proximo ciclo.
     }
 
     if (lista != m_solicitudes) {
         m_solicitudes = lista;
         emit solicitudesCambiaron();
     }
+}
+
+// Theme 11 Task 6: solicitudes abiertas que le tocan a un rol (misma
+// consulta de siempre, ahora reutilizable por ServidorPersonal).
+bool AlertasPersonal::pendientesPara(const QString &rol, QVariantList *lista)
+{
+    const QString tipoVisible = tipoVisiblePara(rol);
+    QString sql = QStringLiteral(
+        "SELECT s.id_solicitud, s.tipo, s.prioridad, s.origen, s.estado, "
+        "       s.id_responsable_asignado, s.fecha_creacion, h.numero, "
+        "       u.nombre || ' ' || u.apellido AS responsable, "
+        "       CAST((julianday('now','localtime') - julianday(s.fecha_creacion)) * 1440 AS INTEGER) AS minutos_espera "
+        "FROM Solicitud_Servicio s "
+        "JOIN Habitacion h ON h.id_habitacion = s.id_habitacion "
+        "LEFT JOIN Usuario u ON u.id_usuario = s.id_responsable_asignado "
+        "WHERE s.estado IN ('pendiente', 'en_proceso') ");
+    if (!tipoVisible.isEmpty()) {
+        sql += QStringLiteral("AND s.tipo = :tipo ");
+    }
+    sql += QStringLiteral(
+        "ORDER BY CASE s.prioridad WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, "
+        "         s.fecha_creacion, s.id_solicitud");
+
+    QSqlQuery pendientes;
+    pendientes.prepare(sql);
+    if (!tipoVisible.isEmpty()) {
+        pendientes.bindValue(":tipo", tipoVisible);
+    }
+
+    if (pendientes.exec()) {
+        while (pendientes.next()) {
+            QVariantMap fila;
+            fila[QStringLiteral("idSolicitud")] = pendientes.value("id_solicitud").toInt();
+            fila[QStringLiteral("numeroHabitacion")] = pendientes.value("numero").toString();
+            fila[QStringLiteral("tipo")] = pendientes.value("tipo").toString();
+            fila[QStringLiteral("prioridad")] = pendientes.value("prioridad").toString();
+            fila[QStringLiteral("origen")] = pendientes.value("origen").toString();
+            fila[QStringLiteral("estado")] = pendientes.value("estado").toString();
+            fila[QStringLiteral("idResponsable")] = pendientes.value("id_responsable_asignado").toInt();
+            fila[QStringLiteral("responsable")] = pendientes.value("responsable").toString();
+            fila[QStringLiteral("fechaCreacion")] = pendientes.value("fecha_creacion").toString();
+            fila[QStringLiteral("minutosEspera")] = qMax(0, pendientes.value("minutos_espera").toInt());
+            lista->append(fila);
+        }
+    } else {
+        qWarning() << "AlertasPersonal: no se pudieron leer pendientes:"
+                   << pendientes.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+// Theme 11 Task 6: rol de un usuario activo si tiene el permiso
+// ('solicitudes', accion); vacio si no.
+QString AlertasPersonal::rolDeUsuario(int idUsuario, const QString &accion)
+{
+    QSqlQuery query;
+    query.prepare(QStringLiteral(
+        "SELECT r.nombre FROM Usuario u "
+        "JOIN Rol r ON r.id_rol = u.id_rol "
+        "WHERE u.id_usuario = :id AND u.estado = 'activo' "
+        "  AND EXISTS (SELECT 1 FROM Permisos p WHERE p.id_rol = u.id_rol "
+        "              AND p.modulo = 'solicitudes' AND p.accion_permitida = :accion)"));
+    query.bindValue(":id", idUsuario);
+    query.bindValue(":accion", accion);
+    if (!query.exec() || !query.next()) {
+        return QString();
+    }
+    return query.value(0).toString();
 }

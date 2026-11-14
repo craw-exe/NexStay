@@ -84,8 +84,14 @@ int main(int argc, char *argv[])
     //   - Con el argumento --kiosko: la pantalla de la HABITACION que usa
     //     el huesped (Main.qml). En Qt Creator: Projects > Run >
     //     "Command line arguments".
+    //   - Theme 11 Task 6: en el celular (Android) se abre la app del
+    //     personal, que se conecta al servidor de la PC de recepcion.
+#ifdef Q_OS_ANDROID
+    engine.loadFromModule("NexStay", "AppMovil");
+#else
     const bool modoKiosko = app.arguments().contains(QStringLiteral("--kiosko"));
     engine.loadFromModule("NexStay", modoKiosko ? "Main" : "PantallaPrincipal");
+#endif
 
     return QGuiApplication::exec();
 }

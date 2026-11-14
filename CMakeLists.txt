@@ -5,7 +5,7 @@ project(NexStay VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Sql)
+find_package(Qt6 REQUIRED COMPONENTS Quick Sql Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -40,6 +40,8 @@ qt_add_qml_module(appNexStay
         ResaltadoHover.qml
         BotonApp.qml
         SelectorFecha.qml
+        ConfiguracionKiosko.qml
+        AppMovil.qml
     SOURCES
         Habitacion.h
         Habitacion.cpp
@@ -67,6 +69,10 @@ qt_add_qml_module(appNexStay
         ListaHabitaciones.cpp
         Recepcion.h
         Recepcion.cpp
+        ServidorPersonal.h
+        ServidorPersonal.cpp
+        ConexionHotel.h
+        ConexionHotel.cpp
     RESOURCES
         datos_demo.sql
 )
@@ -83,12 +89,23 @@ set_target_properties(appNexStay PROPERTIES
 )
 
 target_link_libraries(appNexStay
-    PRIVATE Qt6::Quick Qt6::Sql
+    PRIVATE Qt6::Quick Qt6::Sql Qt6::Network
 )
 
-# Theme 10: pruebas unitarias (carpeta tests).
-enable_testing()
-add_subdirectory(tests)
+# Theme 11 Task 5: datos de la app para Android (version celular).
+set_target_properties(appNexStay PROPERTIES
+    QT_ANDROID_PACKAGE_NAME "mx.nexora.nexstay"
+    QT_ANDROID_APP_NAME "NexStay"
+    QT_ANDROID_VERSION_NAME "1.1"
+    QT_ANDROID_VERSION_CODE 2
+)
+
+# Theme 10: pruebas unitarias (carpeta tests). En Android no se compilan:
+# se corren en la PC.
+if (NOT ANDROID)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 install(TARGETS appNexStay
     BUNDLE DESTINATION .

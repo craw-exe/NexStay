@@ -5,6 +5,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTimer>
+#include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
 // Representa la habitacion mostrada en la pantalla tactil.
@@ -42,6 +43,14 @@ public:
     // Intenta cambiar el estado de la habitacion y lo guarda en la BD.
     // Devuelve true si el estado era valido y el UPDATE se aplico.
     Q_INVOKABLE bool cambiarEstado(const QString &nuevoEstado);
+
+    // Theme 11: configurar que habitacion es esta pantalla (kiosko).
+    // La pantalla de QML pide antes el login de un administrador.
+    Q_INVOKABLE bool configurada() const;
+    // Todas las habitaciones { numero, piso, tipo } para elegir.
+    Q_INVOKABLE QVariantList habitacionesParaConfigurar() const;
+    // Guarda la habitacion en esta computadora y recarga los datos.
+    Q_INVOKABLE void configurar(const QString &numero);
 
 signals:
     void datosCargados();

@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QVariantMap>
 
 Habitacion::Habitacion(QObject *parent)
     : QObject(parent)
@@ -141,4 +142,36 @@ bool Habitacion::cambiarEstado(const QString &nuevoEstado)
     emit estadoCambiado(m_estadoActual);
 
     return true;
+}
+
+// Theme 11: configuracion del kiosko desde la pantalla.
+bool Habitacion::configurada() const
+{
+    return Database::kioskoConfigurado();
+}
+
+QVariantList Habitacion::habitacionesParaConfigurar() const
+{
+    QVariantList resultado;
+    QSqlQuery query;
+    if (!query.exec(QStringLiteral("SELECT numero, piso, tipo FROM Habitacion ORDER BY numero"))) {
+        qWarning() << "No se pudo leer Habitacion:" << query.lastError().text();
+        return resultado;
+    }
+    while (query.next()) {
+        QVariantMap fila;
+        fila[QStringLiteral("numero")] = query.value(0).toString();
+        fila[QStringLiteral("piso")] = query.value(1).toInt();
+        fila[QStringLiteral("tipo")] = query.value(2).toString();
+        resultado.append(fila);
+    }
+    return resultado;
+}
+
+void Habitacion::configurar(const QString &numero)
+{
+    Database::guardarHabitacionKiosko(numero);
+    cargarDesdeBaseDeDatos();
+    emit datosCargados();
+    emit estadoCambiado(m_estadoActual);
 }

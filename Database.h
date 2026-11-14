@@ -31,6 +31,12 @@ namespace Database
     void fijarHabitacionKiosko(const QString &numero);
     int idHabitacionKiosko();
 
+    // Theme 11: configuracion del kiosko desde la propia pantalla.
+    // kioskoConfigurado() es true si se paso --habitacion= o si ya se
+    // guardo una habitacion en esta computadora.
+    bool kioskoConfigurado();
+    void guardarHabitacionKiosko(const QString &numero);
+
     // Theme 10: copia la base a la carpeta "respaldos" junto al archivo,
     // una vez al dia, y deja solo los ultimos 7 respaldos.
     bool respaldarSiHaceFalta();

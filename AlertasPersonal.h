@@ -81,6 +81,14 @@ public:
     // el Theme 8 (reportes) puede apoyarse en estos mismos calculos.
     Q_INVOKABLE QVariantList historial(int limite = 50);
 
+    // Theme 11 Task 6: las mismas reglas para un usuario dado (no el de la
+    // sesion de esta app). Las usa ServidorPersonal para los celulares.
+    // tomarComo/atenderComo devuelven vacio si se pudo, o el motivo.
+    static QString rolDeUsuario(int idUsuario, const QString &accion);
+    static bool pendientesPara(const QString &rol, QVariantList *lista);
+    static QString tomarComo(int idSolicitud, int idUsuario, const QString &rol);
+    static QString atenderComo(int idSolicitud, int idUsuario, const QString &rol);
+
 signals:
     void solicitudTomada(int idSolicitud);
     void solicitudAtendida(int idSolicitud);

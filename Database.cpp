@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
@@ -15,6 +16,15 @@ namespace
 {
     QString s_rutaArchivo;
     QString s_numeroKiosko;
+
+    // Theme 11: habitacion guardada en esta computadora por la pantalla
+    // "Configurar esta pantalla" del modo kiosko (registro de Windows /
+    // ajustes de la app en Android).
+    QString numeroKioskoGuardado()
+    {
+        QSettings ajustes(QStringLiteral("Nexora"), QStringLiteral("NexStay"));
+        return ajustes.value(QStringLiteral("kiosko/habitacion")).toString();
+    }
 
     // Esquema completo del Sprint 2 (archivo "BASE DE DATOS 2.txt").
     // Se ejecuta una sola vez, la primera vez que la app corre en una
@@ -550,16 +560,30 @@ namespace Database
         s_numeroKiosko = numero.trimmed();
     }
 
+    bool kioskoConfigurado()
+    {
+        return !s_numeroKiosko.isEmpty() || !numeroKioskoGuardado().isEmpty();
+    }
+
+    void guardarHabitacionKiosko(const QString &numero)
+    {
+        QSettings ajustes(QStringLiteral("Nexora"), QStringLiteral("NexStay"));
+        ajustes.setValue(QStringLiteral("kiosko/habitacion"), numero.trimmed());
+        s_numeroKiosko = numero.trimmed();
+    }
+
     int idHabitacionKiosko()
     {
-        if (!s_numeroKiosko.isEmpty()) {
+        // Prioridad: --habitacion=N, luego la guardada en esta computadora.
+        const QString numero = s_numeroKiosko.isEmpty() ? numeroKioskoGuardado() : s_numeroKiosko;
+        if (!numero.isEmpty()) {
             QSqlQuery porNumero;
             porNumero.prepare(QStringLiteral("SELECT id_habitacion FROM Habitacion WHERE numero = :n"));
-            porNumero.bindValue(":n", s_numeroKiosko);
+            porNumero.bindValue(":n", numero);
             if (porNumero.exec() && porNumero.next()) {
                 return porNumero.value(0).toInt();
             }
-            qWarning() << "No existe la habitacion" << s_numeroKiosko << "- se usa la primera.";
+            qWarning() << "No existe la habitacion" << numero << "- se usa la primera.";
         }
         QSqlQuery primera;
         if (primera.exec(QStringLiteral("SELECT MIN(id_habitacion) FROM Habitacion"))

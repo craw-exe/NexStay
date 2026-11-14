@@ -101,6 +101,10 @@ ApplicationWindow {
         id: control
     }
 
+    // Theme 11 Task 6: al abrir la app de recepcion se enciende el servidor
+    // para los celulares del personal (leerlo aqui crea el singleton).
+    readonly property bool servidorEncendido: ServidorPersonal.activo
+
     // --- Utilidades de texto ---
     function saludo() {
         const hora = new Date().getHours()
@@ -175,6 +179,15 @@ ApplicationWindow {
         window.textoBanner = texto
         banner.visible = true
         temporizadorBanner.restart()
+    }
+
+    // Theme 11 Task 5: en el celular, el boton "atras" de Android regresa
+    // al inicio en lugar de cerrar la app (solo la cierra desde el inicio).
+    onClosing: function(close) {
+        if (Sesion.haySesion && pila.depth > 1) {
+            close.accepted = false
+            window.volver()
+        }
     }
 
     // Theme 10: al abrir la app siempre se pide login.
@@ -548,6 +561,37 @@ ApplicationWindow {
                 }
 
                 Item { Layout.fillHeight: true }
+
+                // Theme 11 Task 6: datos para conectar los celulares
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: 6
+                    implicitHeight: datosServidor.implicitHeight + 20
+                    radius: 12
+                    color: "#1B355F"
+                    ColumnLayout {
+                        id: datosServidor
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 2
+                        Label {
+                            text: qsTr("📱 Celulares conectados: %1").arg(ServidorPersonal.celulares)
+                            color: "#FFFFFF"
+                            font.pixelSize: 13
+                            font.weight: Font.DemiBold
+                        }
+                        Label {
+                            text: window.servidorEncendido
+                                  ? qsTr("IP del hotel: %1").arg(ServidorPersonal.direccion)
+                                  : qsTr("Servidor apagado")
+                            color: "#93A4C3"
+                            font.pixelSize: 12
+                        }
+                    }
+                }
 
                 // Usuario y salir
                 Rectangle {
