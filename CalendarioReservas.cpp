@@ -87,7 +87,10 @@ QVariantList CalendarioReservas::reservasEntre(const QString &fechaInicio, const
     QSqlQuery query;
     query.prepare(QStringLiteral(
         "SELECT r.id_reserva, r.id_habitacion, r.fecha_entrada, r.fecha_salida, "
-        "       hu.nombre, hu.apellido "
+        "       hu.nombre, hu.apellido, "
+        // Theme 11 Task 4: si ya hizo check-in (para pintarla de otro color).
+        "       EXISTS (SELECT 1 FROM Historial_Estadia e WHERE e.id_reserva = r.id_reserva "
+        "               AND e.fecha_salida_real IS NULL) AS en_estadia "
         "FROM Reserva r "
         "JOIN Huesped hu ON hu.id_huesped = r.id_huesped "
         "WHERE r.estado_reserva = 'confirmada' "
@@ -110,6 +113,7 @@ QVariantList CalendarioReservas::reservasEntre(const QString &fechaInicio, const
         fila[QStringLiteral("fechaSalida")] = query.value("fecha_salida").toString();
         fila[QStringLiteral("nombreHuesped")] =
             query.value("nombre").toString() + QStringLiteral(" ") + query.value("apellido").toString();
+        fila[QStringLiteral("enEstadia")] = query.value("en_estadia").toBool();
         resultado.append(fila);
     }
 
