@@ -250,7 +250,13 @@ Item {
                 // Flow: en el celular los botones bajan de renglon y usan
                 // textos cortos para que no se corten.
                 Flow {
-                    width: window.angosta ? parent.width : implicitWidth
+                    // En laptop: ancho de todos los botones juntos (una sola fila).
+                    width: {
+                        if (window.angosta) return parent.width
+                        let total = 0
+                        for (let i = 0; i < children.length; i++) total += children[i].implicitWidth + spacing
+                        return total
+                    }
                     spacing: 6
                     BotonApp {
                         text: window.angosta ? "‹" : qsTr("‹ Semana")
