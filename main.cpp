@@ -47,8 +47,10 @@ int main(int argc, char *argv[])
     s_manejadorAnterior = qInstallMessageHandler(guardarEnLog);
 
     // Theme 9 (instalacion en otro hotel):
-    //   --db=<ruta>  usa ese archivo de base de datos, en un disco local
-    //                (tambien se puede poner en la variable de entorno NEXSTAY_DB).
+    //   --db=<ruta>  usa ese archivo de base de datos (tambien se puede poner
+    //                en la variable de entorno NEXSTAY_DB). Theme 11: puede ser
+    //                una carpeta compartida (\\equipo\NexStayDatos\nexstay_hotel.db)
+    //                para que varias computadoras usen la misma base.
     //   --sin-demo   no carga habitaciones, huespedes ni solicitudes de prueba.
     //   --habitacion=<numero>  (Theme 10) habitacion que muestra el modo kiosko.
     QString rutaBase = qEnvironmentVariable("NEXSTAY_DB");

@@ -51,6 +51,16 @@ Item {
 
     Component.onCompleted: actualizar()
 
+    // Theme 11: con la base compartida, lo que guardan otras computadoras
+    // aparece solo cada 30 s (el boton Actualizar sigue para hacerlo ya).
+    // Solo corre mientras la pantalla esta a la vista.
+    Timer {
+        interval: 30000
+        repeat: true
+        running: vista.visible
+        onTriggered: vista.actualizar()
+    }
+
     function colorEstado(estado) {
         switch (estado) {
         case "libre": return colorExito

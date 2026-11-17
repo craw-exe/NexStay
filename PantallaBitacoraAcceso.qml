@@ -39,10 +39,24 @@ Item {
 
     function actualizar() {
         autorizado = bitacora.puedeVerBitacora()
-        listaRegistros = autorizado ? bitacora.registros() : []
+        const nuevos = autorizado ? bitacora.registros() : []
+        // Igual que en Habitaciones: no se recarga la lista si nada cambio.
+        if (JSON.stringify(nuevos) !== JSON.stringify(listaRegistros)) {
+            listaRegistros = nuevos
+        }
     }
 
     Component.onCompleted: actualizar()
+
+    // Theme 11: con la base compartida, lo que guardan otras computadoras
+    // aparece solo cada 30 s (el boton Actualizar sigue para hacerlo ya).
+    // Solo corre mientras la pantalla esta a la vista.
+    Timer {
+        interval: 30000
+        repeat: true
+        running: window.visible
+        onTriggered: window.actualizar()
+    }
 
     // Traduce tipo_evento a una etiqueta y color legibles.
     function etiquetaEvento(tipoEvento) {

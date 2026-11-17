@@ -1,0 +1,130 @@
+NEXSTAY - VARIAS COMPUTADORAS CON LA MISMA BASE DE DATOS
+=========================================================
+
+Idea: la laptop de recepcion guarda la base de datos en una carpeta
+compartida (NexStayDatos). Las demas computadoras abren la app apuntando a
+esa carpeta y todas ven y guardan lo mismo. Los celulares del personal se
+conectan aparte, por el servidor que abre la app de recepcion.
+
+    Laptop de recepcion  = guarda la base + abre el servidor de los celulares
+    Otras laptops / mini PC de cuartos = usan la base de la laptop de recepcion
+    Celulares del personal = se conectan a la IP de la laptop de recepcion
+
+Regla importante: TODAS las computadoras, incluida la de recepcion, deben abrir
+la MISMA base de datos con --db=\\EQUIPO\NexStayDatos\nexstay_hotel.db
+(en la laptop de recepcion el equipo es "localhost"). Nunca abrir el mismo
+archivo una vez con su ruta local y otra con la ruta de red.
+
+
+A) EN LA LAPTOP DE RECEPCION (una sola vez)
+-------------------------------------------
+1. La carpeta C:\Users\Gabriel\Desktop\NexStayDatos ya esta compartida como
+   NexStayDatos. Se comprueba escribiendo \\localhost\NexStayDatos en el
+   Explorador de archivos.
+
+2. Para que otras computadoras entren, Windows les va a pedir usuario y
+   contrasena de ESTA laptop. Lo mas facil es crear una cuenta solo para esto:
+   Configuracion > Cuentas > Otros usuarios > Agregar cuenta > "No tengo los
+   datos de inicio de sesion" > "Agregar un usuario sin cuenta de Microsoft".
+   Nombre: nexstay, con una contrasena que se apunta.
+   (No sirve el PIN de Windows para entrar por red.)
+
+3. Dar permiso a esa cuenta en la carpeta: clic derecho en NexStayDatos >
+   Propiedades >
+     - Compartir > Uso compartido avanzado > Permisos: agregar nexstay con
+       "Cambiar" y "Leer".
+     - Seguridad > Editar > Agregar nexstay con "Modificar".
+
+4. Red. El uso compartido de archivos necesita que Windows lo deje pasar por
+   el firewall. Dos opciones:
+
+   Opcion 1 (recomendada para la PE-01): usar la red de un celular (zona WiFi
+   o "hotspot") en vez del WiFi de la universidad. Se conectan ahi las
+   laptops y los celulares del personal. Al conectarse, Windows pregunta si
+   se puede descubrir el equipo: decir que si (queda como red Privada). No
+   se expone nada en la red de la universidad y se evita cualquier bloqueo
+   de la escuela. La IP cambia, hay que leerla otra vez en la app.
+
+   Opcion 2: seguir en el WiFi de la universidad (red Publica). Hay que
+   activar el uso compartido de archivos para redes publicas:
+   Configuracion > Red e Internet > Configuracion de red avanzada >
+   Configuracion de uso compartido avanzado > Redes publicas > Uso compartido
+   de archivos e impresoras: Activado. Dejar activada la proteccion con
+   contrasena y usar la cuenta nexstay con una contrasena fuerte. Apagar esta
+   opcion cuando terminen las pruebas, porque mientras esta activa cualquier
+   equipo de la misma red de la escuela puede intentar entrar (pide usuario y
+   contrasena). Ademas la escuela puede bloquear el trafico entre equipos; en
+   ese caso solo sirve la opcion 1.
+
+5. Abrir la app de recepcion con --db=\\localhost\NexStayDatos\nexstay_hotel.db
+   (en Qt Creator: Projects > Run > Command line arguments; o con
+   NexStay_Red.bat escribiendo "localhost" la primera vez).
+   Abajo a la izquierda sale "IP del hotel": esa IP es la que usan los demas.
+   Si la laptop cambia de red, la IP cambia y hay que avisar de nuevo.
+
+
+B) EN CADA LAPTOP O MINI PC QUE SE UNE
+---------------------------------------
+1. Conectarse al mismo WiFi que la laptop de recepcion.
+2. Revisar que la red deja pasar la conexion. En PowerShell, con la IP del
+   hotel:
+       Test-NetConnection IP -Port 445
+       Test-NetConnection IP -Port 5150
+   Debe decir TcpTestSucceeded : True. Si 5150 da True y 445 da False, falta
+   activar el uso compartido en la laptop de recepcion (punto A4) o la red lo
+   bloquea; entonces usar la opcion 1 (celular como zona WiFi).
+   Despues, probar la carpeta: en el Explorador de archivos escribir
+   \\IP\NexStayDatos (con la IP del hotel). Pide usuario y contrasena:
+   LAPTOP-DE-RECEPCION\nexstay y su contrasena, marcando "Recordar mis
+   credenciales". Debe abrir la carpeta y verse nexstay_hotel.db.
+3. Abrir la app:
+   - Con el .bat: copiar NexStay_Red.bat (personal) o NexStay_Kiosko_Red.bat
+     (pantalla de cuarto) junto a appNexStay.exe, y dar doble clic. La primera
+     vez pide la IP y la recuerda en servidor.txt (para cambiarla, borrar ese
+     archivo).
+   - Desde Qt Creator: Projects > Run > Command line arguments:
+       --db=\\IP\NexStayDatos\nexstay_hotel.db
+     y para pantalla de cuarto:
+       --kiosko --db=\\IP\NexStayDatos\nexstay_hotel.db
+4. Pantalla de cuarto nueva: la primera vez sale "Configurar esta pantalla";
+   un administrador entra y elige la habitacion. Queda guardada en esa
+   computadora (para cambiarla, dejar presionado el logo N cinco segundos).
+
+Que se esperan: las pantallas Habitaciones, Reportes y Bitacora se actualizan
+solas cada 30 segundos (y el boton Actualizar lo hace al momento). Si dos
+equipos guardan al mismo tiempo, uno espera hasta 5 segundos al otro.
+
+
+C) PRUEBA PE-01 (varias computadoras a la vez)
+-----------------------------------------------
+Hacer con la laptop de recepcion + al menos otra laptop, y un celular.
+Anotar resultado y tomar captura de cada prueba para la evidencia.
+
+ #  Prueba                                              Resultado esperado
+ 1  Las dos laptops inician sesion con usuarios         Cada una conserva su
+    distintos (por ejemplo admin y karla.ibarra).       sesion; cerrar una no
+                                                        cierra la otra.
+ 2  En una laptop cambiar el estado de una habitacion   En la otra laptop se ve
+    (Habitaciones).                                     en 30 s o con Actualizar.
+ 3  Las dos laptops registran una reserva para la       Solo una se guarda; la
+    MISMA habitacion y fechas al mismo tiempo.          otra recibe el aviso de
+                                                        habitacion ocupada.
+ 4  Las dos laptops hacen check-in o registran un       Los dos se guardan, sin
+    huesped al mismo tiempo (varias veces).             errores o con espera
+                                                        de maximo 5 s.
+ 5  En la bitacora de accesos o el historial revisar    Cada cambio aparece con
+    quien hizo cada cambio.                             el usuario de su laptop.
+ 6  Pedir limpieza desde la pantalla de un cuarto       Llega al celular de
+    (kiosko) abierta en la otra laptop.                 limpieza en unos 2 s y
+                                                        se ve en las laptops.
+ 7  En el celular tomar y terminar la solicitud.        En las laptops pasa a
+                                                        en proceso y luego sale
+                                                        de pendientes.
+ 8  Apagar el WiFi 10 segundos en una laptop y          La app sigue abierta; al
+    volver a encenderlo.                                volver, todo se ve igual
+                                                        al actualizar.
+
+Limitaciones (para documentar): hasta unas pocas computadoras y 40
+habitaciones (SQLite en red); la laptop de recepcion debe estar encendida; los
+celulares y las computadoras deben estar en la misma red; la conexion no va
+cifrada (red local del hotel).

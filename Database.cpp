@@ -614,7 +614,7 @@ namespace Database
         // este en uso (en modo WAL copiar el .db a mano podria dejarla a medias).
         QSqlQuery copia;
         if (!copia.exec(QStringLiteral("VACUUM INTO '%1'")
-                            .arg(carpeta.absoluteFilePath(nombre).replace(QLatin1Char('\''), QStringLiteral("''"))))) {
+                            .arg(QDir::toNativeSeparators(carpeta.absoluteFilePath(nombre)).replace(QLatin1Char('\''), QStringLiteral("''"))))) {
             qWarning() << "No se pudo respaldar la base de datos:" << copia.lastError().text();
             return false;
         }
@@ -628,13 +628,47 @@ namespace Database
         return true;
     }
 
+    // Theme 11: Sesion_Actual tiene una sola fila (id = 1). Con una base
+    // compartida, el login de una computadora le cambiaria la sesion a
+    // las demas (y una mini PC al abrir la cerraria). Por eso cada
+    // conexion crea su propia copia TEMP: SQLite busca primero en temp,
+    // asi que todas las consultas a "Sesion_Actual" usan la de esta
+    // computadora sin cambiar nada mas del codigo. El trigger del
+    // historial se pasa a TEMP por la misma razon (un trigger normal
+    // siempre lee la tabla de la base, no la TEMP).
+    void sesionPorConexion(QSqlDatabase &db)
+    {
+        const QStringList sentencias = {
+            QStringLiteral("CREATE TEMP TABLE IF NOT EXISTS Sesion_Actual ("
+                           " id INTEGER PRIMARY KEY CHECK(id = 1), id_usuario INTEGER)"),
+            QStringLiteral("INSERT OR IGNORE INTO temp.Sesion_Actual (id, id_usuario) VALUES (1, NULL)"),
+            QStringLiteral("DROP TRIGGER IF EXISTS main.trg_actualizar_historial"),
+            QStringLiteral(
+                "CREATE TEMP TRIGGER IF NOT EXISTS trg_actualizar_historial "
+                "AFTER UPDATE OF estado_actual ON Habitacion "
+                "FOR EACH ROW WHEN OLD.estado_actual IS NOT NEW.estado_actual "
+                "BEGIN "
+                "  INSERT INTO Historial_Estado (id_habitacion, estado, fecha_hora_cambio, id_usuario_que_cambio) "
+                "  VALUES (NEW.id_habitacion, NEW.estado_actual, datetime('now','localtime'), "
+                "          (SELECT id_usuario FROM Sesion_Actual WHERE id = 1)); "
+                "END"),
+        };
+        for (const QString &sql : sentencias) {
+            QSqlQuery q(db);
+            if (!q.exec(sql)) {
+                qWarning() << "Sesion por computadora:" << q.lastError().text() << "\n" << sql.left(120);
+            }
+        }
+    }
+
     bool inicializar(const QString &rutaPersonalizada, bool cargarDemo)
     {
         // Theme 9: la ruta se puede cambiar para elegir donde vive la base
         // en cada instalacion (por ejemplo, un disco que se respalda).
-        // Debe ser un disco LOCAL: SQLite en modo WAL no funciona bien en
-        // carpetas compartidas de red. Si no se indica, se usa la carpeta
-        // de datos de la aplicacion como hasta ahora.
+        // Theme 11: tambien puede ser una carpeta compartida de la red
+        // (\\equipo\carpeta\nexstay_hotel.db) para que varias computadoras
+        // usen la misma base; en ese caso se usa el diario DELETE (ver abajo).
+        // Si no se indica, se usa la carpeta de datos de la aplicacion.
         if (rutaPersonalizada.isEmpty()) {
             const QString carpeta = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
             QDir().mkpath(carpeta);
@@ -661,25 +695,39 @@ namespace Database
             qWarning() << "No se pudo activar foreign_keys:" << pragma.lastError().text();
         }
 
-        // Modo WAL (Write-Ahead Logging): permite que varias instancias
-        // de la app (p. ej. la pantalla de una habitacion y la de otra,
-        // o un futuro panel de administracion) lean y escriban la misma
-        // base de datos al mismo tiempo sin bloquearse entre si. Esto es
-        // lo que hace viable el refresco en tiempo real del Task 4.
-        QSqlQuery walMode(db);
-        if (!walMode.exec(QStringLiteral("PRAGMA journal_mode = WAL;"))) {
-            qWarning() << "No se pudo activar journal_mode WAL:" << walMode.lastError().text();
-        } else if (walMode.next()) {
-            // SQLite responde el modo que quedo; si no es "wal" (por ejemplo
-            // en una carpeta de red), se avisa en lugar de fallar en silencio.
-            const QString modo = walMode.value(0).toString();
-            if (modo.compare(QLatin1String("wal"), Qt::CaseInsensitive) != 0) {
-                qWarning() << "SQLite no pudo usar el modo WAL, quedo en:" << modo;
+        // Theme 11: si dos computadoras guardan al mismo tiempo, la segunda
+        // espera hasta 5 s a que la primera termine en vez de fallar.
+        QSqlQuery espera(db);
+        if (!espera.exec(QStringLiteral("PRAGMA busy_timeout = 5000;"))) {
+            qWarning() << "No se pudo fijar busy_timeout:" << espera.lastError().text();
+        }
+        espera.finish();
+
+        // Modo del diario de SQLite:
+        //  - Disco local: WAL (Write-Ahead Logging), varias instancias de la
+        //    app en la MISMA computadora leen y escriben sin bloquearse.
+        //  - Carpeta de red (\\equipo\carpeta): WAL necesita memoria
+        //    compartida que no existe entre computadoras distintas, asi que
+        //    se usa DELETE, el modo clasico que usa los bloqueos de archivo
+        //    de Windows. Theme 11 (carpeta compartida para las mini PCs).
+        const bool enRed = s_rutaArchivo.startsWith(QStringLiteral("\\\\"))
+                           || s_rutaArchivo.startsWith(QStringLiteral("//"));
+        const QString modoDeseado = enRed ? QStringLiteral("delete") : QStringLiteral("wal");
+        QSqlQuery diario(db);
+        if (!diario.exec(QStringLiteral("PRAGMA journal_mode = %1;").arg(modoDeseado))) {
+            qWarning() << "No se pudo activar journal_mode" << modoDeseado << ":" << diario.lastError().text();
+        } else if (diario.next()) {
+            // SQLite responde el modo que quedo; si no es el pedido se avisa
+            // en lugar de fallar en silencio (por ejemplo, si otra
+            // computadora tiene la base abierta en WAL).
+            const QString modo = diario.value(0).toString();
+            if (modo.compare(modoDeseado, Qt::CaseInsensitive) != 0) {
+                qWarning() << "SQLite no pudo usar el modo" << modoDeseado << ", quedo en:" << modo;
             } else {
-                qDebug() << "Modo de diario de SQLite:" << modo;
+                qDebug() << "Modo de diario de SQLite:" << modo << (enRed ? "(carpeta de red)" : "(disco local)");
             }
         }
-        walMode.finish();
+        diario.finish();
 
         QSqlQuery existe(db);
         existe.exec(QStringLiteral(
@@ -702,6 +750,7 @@ namespace Database
             qDebug() << "Esquema de NexStay ya existia, no se vuelve a crear.";
         }
 
+        sesionPorConexion(db);
         aplicarPermisosBase(db);
         if (cargarDemo) {
             sembrarHuespedDemo(db);

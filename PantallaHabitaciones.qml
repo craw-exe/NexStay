@@ -32,10 +32,25 @@ Item {
 
     function actualizar() {
         autorizado = lista.puedeVer()
-        todas = autorizado ? lista.habitaciones() : []
+        const nuevas = autorizado ? lista.habitaciones() : []
+        // Solo se cambia la lista si algo cambio, para no regresar al
+        // inicio de la lista cada 30 s mientras alguien la esta viendo.
+        if (JSON.stringify(nuevas) !== JSON.stringify(todas)) {
+            todas = nuevas
+        }
     }
 
     Component.onCompleted: actualizar()
+
+    // Theme 11: con la base compartida, lo que guardan otras computadoras
+    // aparece solo cada 30 s (el boton Actualizar sigue para hacerlo ya).
+    // Solo corre mientras la pantalla esta a la vista.
+    Timer {
+        interval: 30000
+        repeat: true
+        running: vista.visible
+        onTriggered: vista.actualizar()
+    }
 
     function cuantas(estado) {
         return estado === "" ? todas.length : todas.filter(h => h.estado === estado).length
