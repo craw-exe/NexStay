@@ -18,6 +18,10 @@ import NexStay
 Item {
     id: root
 
+    // Theme 11: ancho maximo del contenido. En pantallas grandes la lista, las
+    // pestanas y el boton "+ Nuevo usuario" quedan centrados en esa columna.
+    readonly property int anchoMax: 720
+
     readonly property color colorFondo: Tema.fondo
     readonly property color colorTarjeta: Tema.tarjeta
     readonly property color colorBorde: Tema.borde
@@ -181,6 +185,8 @@ Item {
         // Pestanas
         RowLayout {
             Layout.fillWidth: true
+            Layout.maximumWidth: root.anchoMax
+            Layout.alignment: Qt.AlignHCenter
             Layout.margins: 14
             spacing: 8
             Chip {
@@ -215,6 +221,8 @@ Item {
             font.pixelSize: 13
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
+            Layout.maximumWidth: root.anchoMax
+            Layout.alignment: Qt.AlignHCenter
             Layout.leftMargin: 14
             Layout.rightMargin: 14
             Layout.bottomMargin: 8
@@ -226,18 +234,21 @@ Item {
             Layout.fillHeight: true
 
             // --- Pestana Usuarios ---
+            Item {
             ListView {
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.min(parent.width - 28, root.anchoMax)
                 clip: true
                 spacing: 8
-                leftMargin: Math.max(14, (width - 560) / 2)
-                rightMargin: leftMargin
                 bottomMargin: 14
                 boundsBehavior: Flickable.StopAtBounds
                 model: root.listaUsuarios
 
                 delegate: Rectangle {
                     required property var modelData
-                    width: ListView.view.width - ListView.view.leftMargin - ListView.view.rightMargin
+                    width: ListView.view.width
                     height: 64
                     radius: 10
                     color: root.colorTarjeta
@@ -299,6 +310,7 @@ Item {
                     }
                 }
             }
+            }
 
             // --- Pestana Permisos ---
             Flickable {
@@ -309,7 +321,7 @@ Item {
 
                 ColumnLayout {
                     id: colPermisos
-                    x: Math.max(14, (parent.width - 560) / 2)
+                    x: Math.max(14, (parent.width - root.anchoMax) / 2)
                     width: parent.width - 2 * x
                     spacing: 10
 
